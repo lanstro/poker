@@ -9,6 +9,7 @@ class UsersController < ApplicationController
 			@user.balance = 2000
 			@user.avatar = rand(10)+1
 			@user.save
+			sign_in @user
 			redirect_to @user
 		else
 			render 'new'
