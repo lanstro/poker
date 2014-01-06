@@ -1,0 +1,7 @@
+<% 10.times do |n| %>
+	<%= link_to image_tag("avatars/#{n+1}.png", alt: "Avatar #{n+1}", 
+							class: "avatar_choices", data: {avatar_no: (n+1)}, 
+							:size =>"128x128"), '#' %>
+<% end %>
+
+# change_avatar_user_path(@user, {:new_avatar=>n+1})

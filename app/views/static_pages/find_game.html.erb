@@ -1,0 +1,20 @@
+<% provide(:title, 'Find a game') %>
+
+<html>
+	<body>
+		<h1>Find a game of Chinese poker to play!</h1>
+		<% if signed_in? and current_table %>
+			<p>You are already playing on a table.  Leave that first if you want to join another</p>
+			<%= link_to "Return to table", table_path(current_table.name), class: "btn btn-large btn-primary" %>
+		<% else %>
+			<ul class="join_game_buttons">
+				<li><%= link_to "$5/point",  new_table_path(:stakes=>5),  class: "btn btn-large btn-primary join_game_button" %></li>
+				<li><%= link_to "$10/point", new_table_path(:stakes=>10), class: "btn btn-large btn-primary join_game_button" %></li>
+				<li><%= link_to "$30/point", new_table_path(:stakes=>30), class: "btn btn-large btn-primary join_game_button" %></li>
+				<li><%= link_to "Any game with friends", new_table_path(:stakes=>"friends"), class: "btn btn-large btn-primary join_game_button" %></li>
+				<li><%= link_to "Join anything!", new_table_path, class: "btn btn-large btn-primary join_game_button" %></li>
+				<li><%= link_to "Manually browse tables", tables_path, class: "btn btn-large btn-primary join_game_button" %></li>
+			</ul>
+		<% end %>
+	</body>
+</html>

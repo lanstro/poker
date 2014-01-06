@@ -1,15 +1,40 @@
+# == Schema Information
+#
+# Table name: users
+#
+#  id         :integer         not null, primary key
+#  name       :string(255)
+#  email      :string(255)
+#  balance    :integer
+#  avatar     :integer
+#  created_at :datetime        not null
+#  updated_at :datetime        not null
+#	 admin			:boolean
+
 class User < ActiveRecord::Base
 
   validates :name, presence: true, 
-									 length: {maximum: 15}, 
+									 length: {maximum: 15, minimum: 3}, 
 									 uniqueness: { case_sensitive: false }
 	VALID_EMAIL_REGEX = /\A[\w+\-.]+@[a-z\d\-.]+\.[a-z]+\z/i
 	validates :email, presence: true, 
 									  format: { with: VALID_EMAIL_REGEX }, 
 										uniqueness: { case_sensitive: false }
-	before_save { self.email = email.downcase }
+										
+	before_save do |user|
+		user.email = email.downcase
+		if user.balance == nil
+			user.balance = 2000
+		end
+		if user.avatar == nil
+			user.avatar = 1+rand(10)
+		end
+	end
+	
 	has_secure_password
 	validates :password, length: { minimum: 6 }
+	validates :password_confirmation, presence:true
+	
 	before_create :create_remember_token
 	
   def User.new_remember_token

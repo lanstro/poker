@@ -1,4 +1,4 @@
-<% provide(:title, @user.name) %>
+<% provide(:title, "Profile: #{@user.name}") %>
 <div class="row">
 	<aside class="span4">
 		<section>
@@ -7,5 +7,30 @@
 				<%= @user.name %>, <%= @user.email %>, <%= @user.balance %>
 			</h1>
 		</section>
+		<section>
+			<% if current_user?(@user) %>
+				<%= link_to "Change Avatar", "#", :id=>"show_avatars_choice", remote: true %>
+			<% end %>
+		</section>
 	</aside>
+	<p>Balance: <%= @user.balance %></p>
+	<% if current_user?(@user) and @user.balance < TOP_UP_MAXIMUM %>
+		<br >
+		<p>
+			Your balance seems a bit low!  Click 
+				<%= link_to "here", topup_user_path(@user) %>
+  			if you want to top it up with another 1,000 credits for free.
+		</p>
+	<% end %>
+</div>
+
+<div id="avatar_choices_section">
+  <%= render 'change_avatar' %>
+</div>
+
+<div>
+<center>
+	<%= link_to "Rules of Chinese Poker", help_path, class: "btn btn-large btn-primary btn-center" %>
+	<%= link_to "Find a game now!", '#', class: "btn btn-large btn-primary btn-center" %>
+</center>
 </div>

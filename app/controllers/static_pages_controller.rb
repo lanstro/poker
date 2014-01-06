@@ -7,4 +7,7 @@ class StaticPagesController < ApplicationController
 	
 	def about
 	end
+	
+	def find_game
+	end
 end
