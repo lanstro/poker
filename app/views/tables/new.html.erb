@@ -13,7 +13,7 @@
 				<%= f.select(:seats, [2, 4, 6, 8]) %>
 
 				<%= f.label :ais, "AIs fill empty seats?" %>
-				<%= f.select(:ais, [true, false]) %>
+				<%= f.select(:ais, ["Yes", "No"]) %>
 
 				<%= f.submit "Find a table", class: "btn btn-large btn-primary" %>
 			<% end %>

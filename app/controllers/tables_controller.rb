@@ -6,12 +6,11 @@ class TablesController < ApplicationController
   end
 	
 	def create
-		if params[:table][:ais] == "true"
+		if params[:table][:ais] == "Yes"
 			ais=true
 		else
 			ais=false
 		end 
-		Rails.logger.info "human log "+params.inspect
 		@table=Table.find_empty_table(params[:table][:stakes].to_i, params[:table][:seats].to_i, ais)
 		redirect_to table_path(@table.id)
 	end
