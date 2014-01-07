@@ -12,5 +12,106 @@
 
 	<h1>Table <%= @table.id %></h1>
 	<h2><%= description %></h2>
-	<p>Find me in app/views/tables/show.html.erb</p>
+
+	<div id = "table">
+		<div id = "opponents">
+			<div id="announcements">
+				<p>Announcements here</p>
+			</div>
+			<div class="opponent">
+				<%= image_tag("avatars/2_small.png", alt: "avatar", class: "avatar float_left") %>
+				<div class="player_info float_left">
+					<p>player 1</p>
+					<p>$1323</p>
+				</div>
+				<div class="opponent_cards float_left">
+					<%= image_tag("other/back_full_stack.png", alt: "covered cards", class: "covered_cards") %>
+				</div>
+			</div>
+			<div class="opponent">
+				<%= image_tag("avatars/3_small.png", alt: "avatar", class: "avatar float_right") %>
+				<div class="player_info float_right">
+					<p>player 1</p>
+					<p>$1323</p>
+				</div>
+				<div class="opponent_cards float_right">
+					<%= image_tag("other/back_full_stack.png", alt: "covered cards", class: "covered_cards") %>
+				</div>
+			</div>
+			<div class="opponent">
+				<%= image_tag("avatars/4_small.png", alt: "avatar", class: "avatar float_left") %>
+				<div class="player_info float_left">
+					<p>player 1</p>
+					<p>$1323</p>
+				</div>
+				<div class="opponent_cards float_left">
+					<%= image_tag("other/back_full_stack.png", alt: "covered cards", class: "covered_cards") %>
+				</div>
+			</div>
+			<div class="opponent">
+				<%= image_tag("avatars/5_small.png", alt: "avatar", class: "avatar float_right") %>
+				<div class="player_info float_right">
+					<p>player 1</p>
+					<p>$1323</p>
+				</div>
+				<div class="opponent_cards float_right">
+					<%= image_tag("other/back_full_stack.png", alt: "covered cards", class: "covered_cards") %>
+				</div>
+			</div>
+		</div>
+		
+		<div id= "protagonist">
+			<div id="protagonist_cards">
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+				<%= image_tag("cards/blank.png", alt: "blank card", class: "protagonist_card") %>
+			</div>
+			<div id="interface">
+				<div id="sort_buttons">
+					<%= image_tag("other/by_val.png", alt: "sort by value", class: "sort_button") %>
+					<%= image_tag("other/by_suit.png", alt: "sort by suit", class: "sort_button") %>
+					<%= image_tag("other/swap_cards.png", alt: "swap cards", class: "sort_button") %>
+				</div>
+				<div id="chat_box">
+            <textarea id="log" disabled rows=7></textarea>
+            </textarea>
+            <form id="input">
+                <input type="text" id="message_input">
+                <input type="submit" id="send_button" value="Send">
+            </form>
+				</div>
+				<div id="buttons">
+					<ul>
+						<li><a href="#">Leave Table</a></li>
+						<li><a href="#">Sit out next hand</a></li>
+						<li><a href="#">Fold</a></li>
+						<li><a href="#">Ready</a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	
 <% end %>
