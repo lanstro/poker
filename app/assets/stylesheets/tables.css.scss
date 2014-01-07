@@ -1,0 +1,11 @@
+// Place all the styles related to the Tables controller here.
+// They will automatically be included in application.css.
+// You can use Sass (SCSS) here: http://sass-lang.com/
+
+.tablesorter-headerAsc {
+  background: url('icons/up-arrow.png') no-repeat right;
+}
+
+.tablesorter-headerDesc {
+  background: url('icons/down-arrow.png') no-repeat right;
+}

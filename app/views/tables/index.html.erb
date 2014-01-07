@@ -1,0 +1,43 @@
+<% provide(:title, "List of tables") %>
+<h1>Active tables</h1>
+
+<% if @tables.size==0 %>
+	<p>No tables open right now.</p>
+	<%= link_to "Start a new table!", new_table_path, class: "btn btn-large btn-primary btn-center" %>
+<% else %>
+	<table id="tables" class="table">
+		<thead>
+			<tr>
+				<th>Table ID</th>
+				<th>Stakes ($/point)</th>
+				<th>AIs?</th>
+				<th>Humans on table</th>
+				<th>Total Seats</th>
+			</tr>
+		</thead>
+		<tbody>
+		<% @tables.each do |t| %>
+			<tr>
+				<td><%=link_to "Table #{t.id}", table_path(t.id) %></td> 
+				<td>$<%= t.stakes %></td>
+				<td><%= (t.ais)?"Enabled":"Disabled" %></td>
+				<td><%= t.seats %></td>
+				<td>[Placeholder]</td>
+			</tr>
+		<% end %>
+		</tbody>
+	</table>
+
+	<% if signed_in? %>
+		<p>None of the current tables interest you?</p>
+		<%= link_to "Start a new table!", new_table_path, class: "btn btn-large btn-primary btn-center" %>
+	<% end %>
+<% end %>
+
+<script>
+	$(document).ready(function(){
+		$('#tables').tablesorter({
+			sortList: [ [0,0]]
+		});
+	});
+</script>

@@ -1,10 +1,9 @@
 <% if signed_in? %>
 	<% current_table=false %>
-	<% find_path = '#' %>
 	<% if current_table %>
 		<%= link_to "Return to table", table_path(current_table.name), class: "btn btn-large btn-primary" %>
 	<% else %>
-		<%= link_to "Find a game now!", find_path, class: "btn btn-large btn-primary" %>
+		<%= link_to "Find a game now!", tables_path, class: "btn btn-large btn-primary" %>
 	<% end %>
 <% else %> 
 	<%= link_to "Sign up now!", new_user_path, class: "btn btn-large btn-primary" %>
