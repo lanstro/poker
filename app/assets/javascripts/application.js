@@ -14,4 +14,9 @@
 //= require jquery_ujs
 //= require bootstrap
 //= require turbolinks
+//= require underscore
+//= require backbone
+//= require railsy_backbone.sync
+//= require railsy_backbone.datalink
+//= require backbone/poker
 //= require_tree .
