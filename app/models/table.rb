@@ -1,7 +1,5 @@
 class Table
 
-	include ActiveModel::Validations
-	
 	#defaults
 	DEFAULT_STAKES = 10
 	DEFAULT_SEATS = 4
