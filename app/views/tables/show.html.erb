@@ -50,7 +50,9 @@
 	</div>
 
 	<script type="text/template" id="opponent_template">
-		<img class="table_avatar" alt: "avatar" src=<%%= '/assets/avatars/'+avatar+'_small.png' %>  >
+		<img src = <%= asset_path("assets/avatars/") %><%%= avatar+'_small.png' %> alt = "avatar" class = "table_avatar" >
+
+
 		<div class="player_info">
 			<p><%%= name %></p>
 			<p><%%= "$"+balance %></p>
