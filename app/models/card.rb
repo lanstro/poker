@@ -1,58 +1,40 @@
 class Card
 
-	attr_reader :val
+	attr_reader :val, :suit, :face_value_short, :face_value_long, :human_description
 
 	def initialize(val)
-		change_val val
+		@val = val
+		@suit = ["c", "s", "h", "d"][(@val-1)/13]
+		@face_value_short = value_human "short"
+		@face_value_long = value_human "long"
+		@human_description = @face_value_short + @suit
 	end
 	
-	def change_val(val)
-		@val=val
-	end
-	
-	def suit
-		return ["c", "s", "h", "d"][(@val-1)/13];
-	end
-	
-	def value_human
+	def value_human(length="short")
 		case @val%13
 			when ACE
-				return 'A'
+				return length=="short" ? 'A' : 'Ace'
 			when TEN
-				return 'T'
+				return length=="short" ? 'T' : 'Ten'
 			when JACK
-				return 'J'
+				return length=="short" ? 'J' : 'Jack'
 			when QUEEN
-				return 'Q'
+				return length=="short" ? 'Q' : 'Queen'
 			when KING
-				return 'K'
+				return length=="short" ? 'K' : 'King'
 			else
-				return @val%13
+				return (@val%13).to_s
 		end
 	end
 	
-	def human_description
-		return self.value_human.to_s+self.suit
-	end
-	
-	def value_comparison
+	def value_comparison(ace_lo = false)
 		result = @val % 13
 		if result == KING
 			result = KING_COMPARATOR
-		elsif result == ACE
+		elsif result == ACE && !ace_lo
 			result = ACE_COMPARATOR
 		end
 		return result
-	end
-	
-	def <=>(other_card)
-		if value_comparison==other_card.value_comparison
-			return 0
-		elsif value_comparison < other_card.value_comparison
-			return -1
-		else
-			return 1
-		end
 	end
 
 end
