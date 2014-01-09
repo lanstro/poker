@@ -21,10 +21,10 @@ app.HandView = Backbone.View.extend({
 		return this;
 	},
 	renderCard: function(card){
-		var CardView=new app.CardView({
+		var cardView=new app.CardView({
 			model:card,
 		});
-		this.$el.append(CardView.render().$el);
+		this.$el.append(cardView.render().$el);
 	},
 	
 });

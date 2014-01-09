@@ -2,7 +2,7 @@ class Table
 
 	#defaults
 	DEFAULT_STAKES = 10
-	DEFAULT_SEATS = 8
+	DEFAULT_SEATS = 5
 	DEFAULT_AIS = true
 	
 	@@tables = []
@@ -121,26 +121,6 @@ class Table
 		end
 		
 		@results[index]=temp
-
-		ranks.each do |player|
-			puts "had "+player.hand.arrangement[index][:human_name]+" with unique value of "+player.hand.arrangement[index][:unique_value].to_s
-		end
-		
-		@results[index].each do |rank, players|
-			t = ""
-			puts rank.to_s+": "+players.join
-		end
-	end
-
-	def test (index=0)
-		muck
-		deal
-		showdown index
-		payout_hand index
-		if sugar_payable?(index)
-			payout_sugar index
-		end
-		return nil
 	end
 
 	def points_array(num_of_players = players_in_hand.size)
@@ -184,7 +164,6 @@ class Table
 		if(index < OVERALL_SUGAR_INDEX)
 			winner = @results[index][1].first
 			sugars = 1
-			puts "sugar calculated for "+winner.name
 		else
 			winners= []
 
@@ -216,10 +195,20 @@ class Table
 					player.change_balance(-@stakes * sugars)
 				end
 			end
-		end
-		
+		end		
 	end
 	
+	def test (index=0)
+		muck
+		deal
+		showdown index
+		payout_hand index
+		if sugar_payable?(index)
+			payout_sugar index
+		end
+		return nil
+	end
+
 	
 	def persisted?
 		false

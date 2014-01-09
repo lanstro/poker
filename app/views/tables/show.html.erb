@@ -14,50 +14,10 @@
 	<h2><%= description %></h2>
 
 	<div id = "table">
+		<div id="announcements">
+			<p>Announcements here</p>
+		</div>
 		<div id = "opponents">
-			<div id="announcements">
-				<p>Announcements here</p>
-			</div>
-			<div class="opponent">
-				<%= image_tag("avatars/2_small.png", alt: "avatar", class: "avatar float_left") %>
-				<div class="player_info float_left">
-					<p>player 1</p>
-					<p>$1323</p>
-				</div>
-				<div class="opponent_cards float_left">
-					<%= image_tag("other/back_full_stack.png", alt: "covered cards", class: "covered_cards") %>
-				</div>
-			</div>
-			<div class="opponent">
-				<%= image_tag("avatars/3_small.png", alt: "avatar", class: "avatar float_right") %>
-				<div class="player_info float_right">
-					<p>player 1</p>
-					<p>$1323</p>
-				</div>
-				<div class="opponent_cards float_right">
-					<%= image_tag("other/back_full_stack.png", alt: "covered cards", class: "covered_cards") %>
-				</div>
-			</div>
-			<div class="opponent">
-				<%= image_tag("avatars/4_small.png", alt: "avatar", class: "avatar float_left") %>
-				<div class="player_info float_left">
-					<p>player 1</p>
-					<p>$1323</p>
-				</div>
-				<div class="opponent_cards float_left">
-					<%= image_tag("other/back_full_stack.png", alt: "covered cards", class: "covered_cards") %>
-				</div>
-			</div>
-			<div class="opponent">
-				<%= image_tag("avatars/5_small.png", alt: "avatar", class: "avatar float_right") %>
-				<div class="player_info float_right">
-					<p>player 1</p>
-					<p>$1323</p>
-				</div>
-				<div class="opponent_cards float_right">
-					<%= image_tag("other/back_full_stack.png", alt: "covered cards", class: "covered_cards") %>
-				</div>
-			</div>
 		</div>
 		
 		<div id= "protagonist">
@@ -89,4 +49,17 @@
 		</div>
 	</div>
 
+	<script type="text/template" id="opponent_template">
+		<img class="table_avatar" alt: "avatar" src=<%%= '/assets/avatars/'+avatar+'_small.png' %>  >
+		<div class="player_info">
+			<p><%%= name %></p>
+			<p><%%= "$"+balance %></p>
+		</div>
+		<div class="opponent_cards">
+			<%= image_tag("other/back_full_stack.png", alt: "covered cards", class: "covered_cards") %>
+		</div>
+	</script>
+	<script type="text/template" id="card_template">
+		<img src= <%%= '/assets/cards/'+human_description+'.png' %> >
+	</script>
 <% end %>

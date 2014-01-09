@@ -31,9 +31,9 @@ app.Card = Backbone.Model.extend ({
 	},
 	JSON_value: function(){
 		if(!this.get('val')){
-			return ({value_string:'blank'});
+			return ({human_description:'blank'});
 		}
-		return ({value_string: this.valueHuman()+this.suit});
+		return ({human_description: this.valueHuman()+this.suit});
 	},
 	valueComputed: function(){
 		var result = this.get('val') % 13;

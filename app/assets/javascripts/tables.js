@@ -24,4 +24,5 @@ var FRONT_HAND = 1,
 
 $(document).ready(function(){
 	window.a = new app.HandView();
+	window.b = new app.OpponentsView();
 });
