@@ -4,7 +4,7 @@ class Card
 
 	def initialize(val)
 		@val = val
-		@suit = ["c", "s", "h", "d"][(@val-1)/13]
+		@suit = ["c", "s", "h", "d"][((@val-1)%52)/13]
 		@face_value_short = value_human "short"
 		@face_value_long = value_human "long"
 		@human_description = @face_value_short + @suit

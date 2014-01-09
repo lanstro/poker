@@ -1,13 +1,18 @@
 class Hand
 
+	SUGARS = [THREE_OF_A_KIND, 6, FOUR_OF_A_KIND]
+
 	attr_reader :owner, :cards, :arrangement, :deck
+	
 	
 	def initialize(deck=nil, owner=nil)
 		@owner = owner
 		@deck = deck
 		@cards = []
+		
+		#arrangement = [front_hand:{ :cards, :value, :unique_value, :human_name}, mid_hand...]
+		
 		@arrangement = [{}, {}, {}]
-		test
 	end
 	
 	def muck
@@ -33,54 +38,56 @@ class Hand
 	
 	def auto_arrange
 		@cards.sort_by! { |card| card.value_comparison }
-		@arrangement = [ {cards: @cards[0..2], value: nil, human_name: nil },
-										 {cards: @cards[3..7], value: nil, human_name: nil  },
+		@arrangement = [ {cards: @cards[5..7], value: nil, human_name: nil },
+										 {cards: @cards[0..4], value: nil, human_name: nil  },
 										 {cards: @cards[8..12], value: nil, human_name: nil  } ]
 	end
 	
-	def test
-
-		13.times do |i|
-			dealt_card(Card.new(rand(52)+1))
-		end
-		
-		auto_arrange
-		
-		@arrangement[1] = {cards: [Card.new(rand(13)), Card.new(rand(13)), Card.new(rand(13)), Card.new(rand(13)), Card.new(rand(13))], value:nil, human_name: nil }
-		
+	def test_evaluate_hands
 		3.times do |i|
-			@arrangement[i] = Hand.evaluate_subhand(@arrangement[i][:cards], i)
+			evaluate_subhand(i)
 			puts "--------"
 			puts @arrangement[i][:human_name]
+			puts @arrangement[i][:unique_value]
 			@arrangement[i][:cards].each do |card|
 				puts card.human_description
 			end
 		end
-		
 	end
 	
-	# class methods
-	
-	def Hand.compare_subhands(hand1, hand2)
-	
-	
-	
-	end
-	
-	def Hand.evaluate_subhand(hand, index)
-	
-		if index==MID_HAND and MID_IS_LO
-			lo_hand=true
+	def deal_test_hand
+
+		13.times do |i|
+			dealt_card(Card.new(rand(13)+1))
 		end
+		
+		auto_arrange
+		test_evaluate_hands
+
+	end
+	
+	def lo_hand?(index)
+		if index==MID_HAND and MID_IS_LO
+			return true
+		else
+			return false
+		end
+	end
+	
+	def evaluate_subhand(index)
+		
+		cards = @arrangement[index][:cards]
 		
 		suited, multiples = Hash.new(0), Hash.new(0)
 		
-		values = hand.map do |card|
+		values = cards.map do |card|
 			suited[card.suit]+=1
 			multiples[card.value_comparison] += 1
 			card.value_comparison
 		end
-		
+	
+		lo_hand=lo_hand?(index)
+	
 		# if it's not a lo hand and it's not the front, work out whether the hand is suited
 		
 		if !lo_hand and index != FRONT_HAND and suited.size == 1
@@ -93,7 +100,7 @@ class Hand
 
 		is_straight = false
 		
-		if !lo_hand and index != FRONT_HAND and multiples.length == hand.length  
+		if !lo_hand and index != FRONT_HAND and multiples.length == cards.length  
 			if (values.first - values.last == values.length-1) or
 				values.first == ACE_COMPARATOR and values[1] == 5
 				is_straight=true
@@ -102,40 +109,43 @@ class Hand
 		
 		# name straights and straight flushes.  
 		
-		if suited and is_straight
-			hand_name = STRAIGHT_FLUSH
-		elsif is_straight
-			hand_name = STRAIGHT
-		end
+		if is_straight
 		
-		# name hands with repeated cards
+			if suited
+				hand_name = STRAIGHT_FLUSH
+			else
+				hand_name = STRAIGHT
+			end
 		
-		case multiples.values.max
-			when 5
-				hand_name = FIVE_OF_A_KIND
-			when 4
-				hand_name = FOUR_OF_A_KIND
-			when 3
-				if multiples.size == 2
-					hand_name = FULL_HOUSE
+		else
+		
+			# name hands with repeated cards
+		
+			case multiples.values.max
+				when 5
+					hand_name = FIVE_OF_A_KIND
+				when 4
+					hand_name = FOUR_OF_A_KIND
+				when 3
+					if multiples.size == 2
+						hand_name = FULL_HOUSE
+					else
+						hand_name = THREE_OF_A_KIND
+					end
+				when 2
+					if multiples.size == 3
+						hand_name = TWO_PAIR
+					else
+						hand_name = PAIR
+					end
 				else
-					hand_name = THREE_OF_A_KIND
-				end
-			when 2
-				if multiples.size == 3
-					hand_name = TWO_PAIR
-				else
-					hand_name = PAIR
-				end
-			when 1
-			if !is_straight && !suited
-				hand_name = HI_CARD
+					hand_name = HI_CARD
 			end
 		end
 					
 		# name flushes - done this way as there could be multiple decks
 					
-		if suited && hand_name < FLUSH
+		if suited && (hand_name < FLUSH)
 			hand_name = FLUSH
 		end
 		
@@ -144,7 +154,7 @@ class Hand
 				"four of a kind", "five of a kind", "straight flush"][hand_name];
 		else 
 			if hand_name == HI_CARD
-				human_name = "lo - "
+				human_name = "lo -"
 			else
 				human_name = "compromised lo with "+["high card", "pair", "two pair", "three of a kind", "straight", "flush", 
 					"full house", "four of a kind", "five of a kind"][hand_name];
@@ -152,17 +162,19 @@ class Hand
 		end
 		
 		case hand_name
+			when FIVE_OF_A_KIND
+				@arrangement[index]={cards: cards, value: hand_name, human_name: human_name+" "+cards.first.face_value_long+"s"}
 			when HI_CARD, STRAIGHT, FLUSH, STRAIGHT_FLUSH
-				hand = hand.sort_by{ |card| card.value_comparison(lo_hand) }.reverse
+				cards = cards.sort_by{ |card| card.value_comparison(lo_hand) }.reverse
 				card_names = ""
-				hand.each { |card| card_names+=card.face_value_short }
+				cards.each { |card| card_names+=card.face_value_short }
 				human_name=human_name+" "+card_names
-				return {cards: hand, value: hand_name, human_name: human_name }
+				@arrangement[index]= {cards: cards, value: hand_name, human_name: human_name }
 			when PAIR, THREE_OF_A_KIND, FOUR_OF_A_KIND, FULL_HOUSE
 				highest = multiples.key(multiples.values.max)
 				temp=[]
 				remaining=[]
-				hand.each do |card|
+				cards.each do |card|
 					if card.value_comparison == highest
 						temp.push card
 					else
@@ -170,24 +182,24 @@ class Hand
 					end
 				end
 				remaining.sort_by!{|card| card.value_comparison(lo_hand)}.reverse!
-				hand=temp+remaining
+				cards=temp+remaining
 				case hand_name
 					when FULL_HOUSE
-						human_name = human_name + " " + hand.first.face_value_long+"s over "+ hand.last.face_value_long+"s"
+						human_name = human_name + " " + cards.first.face_value_long+"s over "+ cards.last.face_value_long+"s"
 					when FOUR_OF_A_KIND, THREE_OF_A_KIND
-						human_name = human_name + " "+hand.first.face_value_long+"s"
+						human_name = human_name + " "+cards.first.face_value_long+"s"
 					when PAIR
-						human_name = human_name + " of "+hand.first.face_value_long+"s "
+						human_name = human_name + " of "+cards.first.face_value_long+"s "
 						if lo_hand
 							human_name += "and "
-							hand[2..-1].each do |card|
+							cards[2..-1].each do |card|
 								human_name+=card.face_value_short
 							end
 						else
-							human_name += "with "+hand[2].face_value_long+" kicker"
+							human_name += "with "+cards[2].face_value_long+" kicker"
 						end
 				end
-				return {cards: hand, value: hand_name,  human_name: human_name}
+				@arrangement[index]= {cards: cards, value: hand_name,  human_name: human_name}
 			when TWO_PAIR
 				higher, lower = 0, 0
 				multiples=Hash.new(0)
@@ -205,7 +217,7 @@ class Hand
 				
 				temp = [[], []]
 				
-				hand.each do |card|
+				cards.each do |card|
 					if card.value_comparison == higher
 						temp[0].push card
 					elsif card.value_comparison==lower
@@ -219,8 +231,29 @@ class Hand
 				
 				human_name = human_name+", "+temp.first.face_value_long+"s and "+temp[2].face_value_long+"s"
 				
-				return {cards: temp, value: hand_name, human_name: human_name}
+				@arrangement[index]= {cards: temp, value: hand_name, human_name: human_name}
 		end
-		raise "error evaluating hand"
+		
+		unique_value = @arrangement[index][:value].to_s(16) 
+		@arrangement[index][:cards].each do |card|
+			unique_value+=card.value_comparison(lo_hand).to_s(16)
+		end
+		@arrangement[index][:unique_value]=unique_value.to_i(16)
 	end
+	
+	def eligible_for_sugar?(index)
+		if lo_hand?(index)
+			if @arrangement[index][:value] == HI_CARD and
+				 @arrangement[index][:cards].first.value_comparison <= SUGARS[index]
+				 return true
+			else
+				return false
+			end
+		end
+		if @arrangement[index][:value] >= SUGARS[index]
+			return true
+		end
+		return false
+	end
+
 end

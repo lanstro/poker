@@ -1,7 +1,8 @@
 TOP_UP_MAXIMUM = 2000
 FRONT_HAND = 0
 MID_HAND   = 1
-BAC_HAND   = 2
+BACK_HAND   = 2
+OVERALL_SUGAR_INDEX = 3
 MID_IS_LO  = true
 ACE        = 1
 TEN        = 10
