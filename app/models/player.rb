@@ -1,9 +1,9 @@
 class Player
 
-	attr_reader :is_AI, :user, :name, :avatar, :sitting_out, :in_for_next_hand, :hand
+	attr_reader :is_AI, :user, :name, :avatar, :sitting_out, :in_for_next_hand, :hand, :seat
 	attr_accessor :in_current_hand
 
-	def initialize(player="AI", table=nil, balance=1000)
+	def initialize(player="AI", table=nil, balance=1000, seat=0, empty=false)
 	
 		if player== "AI"
 			@is_AI=true
@@ -18,11 +18,11 @@ class Player
 		@user=player
 		@table = table
 		@hand=Hand.new
-		@sitting_out = false
 		@in_current_hand=true
 		@in_for_next_hand = true
 		@balance=balance
-	
+		@seat = seat
+		@empty = empty
 	end
 
 	def muck
@@ -36,6 +36,10 @@ class Player
 	
 	def human?
 		return !@is_AI
+	end
+	
+	def empty?
+		return @empty
 	end
 	
 	def dealt_card(card)
@@ -62,6 +66,16 @@ class Player
 			# kick off table
 			end
 		end
+	end
+	
+	def external_info
+		return {seat: @seat,
+						name: @name, 
+					  avatar: @avatar, 
+						balance: @balance, 
+						in_current_hand: @in_current_hand, 
+						in_for_next_hand: @in_for_next_hand, 
+						is_AI: @is_AI}
 	end
 	
 end

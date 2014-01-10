@@ -4,8 +4,21 @@ app.Hand = Backbone.Collection.extend({
 	model: app.Card,
 	
 	initialize: function(){
-		this.handPosition = FRONT_HAND;
+		this.data={},
+		this.url=$('#table').data('table_id')+'/protagonist_cards'
 	},
+	update: function(){
+		self=this;
+		self.fetch({
+			success: function(model, response){
+				self.data=model;
+				self.trigger("protagonist_cards:updated");
+			}
+		});
+	}
+
+/*
+	
 	comparator: function(a, b){
 		// console.log("Comparing "+a.JSON_value().value_string+" with "+b.JSON_value().value_string);
 		
@@ -132,6 +145,6 @@ app.Hand = Backbone.Collection.extend({
 		return values.join("");
 	}
 	
-	
+*/
 	
 });

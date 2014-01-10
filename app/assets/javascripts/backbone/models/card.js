@@ -1,13 +1,8 @@
 var app = app || {};
 
 app.Card = Backbone.Model.extend ({
-	defaults: {
-		val: null
-	},
-	initialize: function(){
-		this.set('val',Math.floor(Math.random()*52)+1);
-		this.suit = ["c", "s", "h", "d"][Math.floor((this.get('val')-1)/13)];
-	},
+
+	/*
 	valueHuman:function(){
 		var result = this.get('val')%13;
 		switch(result){
@@ -45,5 +40,5 @@ app.Card = Backbone.Model.extend ({
 		}
 		return result;
 	},
-
+	*/
 });
