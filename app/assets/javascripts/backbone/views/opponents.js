@@ -4,16 +4,26 @@ app.OpponentsView = Backbone.View.extend({
 	el: '#opponents',
 
 	initialize: function(){
-		this.collection= new app.Opponents();
-		for(var i=0;i<4;i++){
-			this.addOpponent();
-		}
-		this.render();
+		var col = new app.Opponents();
+		this.collection= col;
+		col.update();
+		
+		_.each(this.collection.data, function(info){
+			this.addOpponent(info);
+		});
+		
+		_.bindAll(this, 'render');
+		
+		this.collection.on("opponents:updated", this.render);
+		
 	},
 	
-	addOpponent: function(value){
-		this.collection.add(new app.Player());
+	addOpponent: function(info){
+		var newPlayer = new app.Player();
+		this.collection.add(newPlayer);
+		newPlayer.update(info);
 	},
+	
 	render: function(){
 		this.$el.empty();
 		this.collection.each(function(player){
@@ -21,6 +31,7 @@ app.OpponentsView = Backbone.View.extend({
 		}, this);
 		return this;
 	},
+	
 	renderOpponent: function(player){
 		var playerView=new app.PlayerView({
 			model:player,

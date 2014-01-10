@@ -9,7 +9,7 @@ app.CardView = Backbone.View.extend({
 	},
 
 	render: function(){
-	  var val = this.model.JSON_value();
+	  var val = this.model.toJSON();
 		this.$el.html(this.template(val));
 		return this;
 	}

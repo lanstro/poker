@@ -10,18 +10,12 @@ Poker::Application.routes.draw do
 	
 	resources :tables
 	
-  #get "tables/join"
-  #get "tables/leave"
-  #get "tables/ready"
-  #get "tables/message"
-  #get "tables/fold"
-  #get "tables/destroy"
+	get 'tables/:id/players_info' => 'tables#players_info'
+	get 'tables/:id/protagonist_cards' => 'tables#protagonist_cards'
 	
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".
 
-  # You can have the root of your site routed with "root"
-  # root 'welcome#index'
 
   # Example of regular route:
   #   get 'products/:id' => 'catalog#view'

@@ -3,15 +3,24 @@ var app = app || {};
 app.HandView = Backbone.View.extend({
 	el: '#protagonist_cards',
 	initialize: function(){
-		this.collection= new app.Hand();
-		for(var i=0;i<5;i++){
-			this.addCard();
-		}
-		this.render();
+		var col = new app.Hand();
+		this.collection= col;
+		col.update();
+		
+		_.each(this.collection.data, function(value){
+			this.addCard(value);
+		});
+
+		_.bindAll(this, 'render');
+		
+		this.collection.on("protagonist_cards:updated", this.render);
+		
 	},
 	
 	addCard: function(value){
-		this.collection.add(new app.Card());
+		var newCard= new app.Card();
+		this.collection.add(newCard);
+		newCard.update(value);
 	},
 	render: function(){
 		this.$el.empty();
@@ -25,6 +34,6 @@ app.HandView = Backbone.View.extend({
 			model:card,
 		});
 		this.$el.append(cardView.render().$el);
-	},
+	}
 	
 });

@@ -8,10 +8,10 @@ class Table
 	@@tables = []
 	@@count = 0
 	
-	attr_reader :stakes, :id, :seats, :ais, :players, :results, :min_table_balance
+	attr_reader :stakes, :id, :seats, :ais, :players, :results, :min_table_balance, :status
 	
   def initialize(stakes=DEFAULT_STAKES, seats=DEFAULT_SEATS, ais=DEFAULT_AIS)
-	
+		
 		@@tables.push(self)
 		@@count+=1
 		
@@ -20,10 +20,11 @@ class Table
 		@seats = seats
 		@players = []
 		@ais = ais
-		@decks = @seats / 4
+		@decks = 1+ (@seats-1) / 4
 		@cards=[]
 		@results = {}
 		@min_table_balance = 3 * (seats +1 )* @stakes
+		@status = 0
 		
 		(CARDS_PER_DECK*@decks).times do |val|
 			@cards.push(Card.new(val+1))
@@ -37,8 +38,10 @@ class Table
 	# housekeeping
 	
 	def fill_seats_with_AIs
+		seat = 1
 		while @players.size < @seats
-			@players.push(Player.new("AI", self, @stakes * 200))
+			@players.push(Player.new("AI", self, @stakes * 200, seat))
+			seat+=1
 		end
 	end
 
@@ -52,6 +55,17 @@ class Table
 			end
 		end
 		return true
+	end
+	
+	def add_human user
+		index=0
+		@players.each do |a|
+			if a.empty? or a.is_AI?
+				players[index] = Player.new(user, self, user.balance, index)
+				return
+			end
+			index+=1
+		end
 	end
 	
 	# actual play
@@ -212,6 +226,26 @@ class Table
 	
 	def persisted?
 		false
+	end
+	
+	# queries
+	
+	def players_info(user=nil)
+		players_info=@players.dup
+		if user
+			players_info.delete_if { |a| a.user == user }
+		end
+		return players_info.map(&:external_info)
+	end
+	
+	def protagonist_cards(user)
+		KAILOGGER.info "called"
+		deal
+		@players.each do |p|
+			if p.user == user
+				return p.hand.cards
+			end
+		end
 	end
 		
 	# class methods
