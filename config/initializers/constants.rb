@@ -23,4 +23,4 @@ FIVE_OF_A_KIND = 8
 STRAIGHT_FLUSH = 9
 CARDS_PER_DECK = 52
 
-KAILOGGER = Logger.new("Kai log")
+KAILOGGER = Logger.new("log/Kai.log")
