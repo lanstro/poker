@@ -9,6 +9,7 @@
 
 	<% description = "Stakes: $#{@table.stakes}/point, #{@table.seats} seats, #{ (@table.ais)?"with AIs":"humans only" }" %>
 	<% provide(:title, description) %>
+	<% card_file_paths %>
 	<h1>Table <%= @table.id %></h1>
 	<h2><%= description %></h2>
 
@@ -59,6 +60,8 @@
 		</div>
 	</script>
 	<script type="text/template" id="card_template">
-		<img src= <%= image_path "cards/Ac.png" %> >
+		<% card_file_paths.each do |key, content| %>
+			<%= content %>
+		<% end %>
 	</script>
 <% end %>
