@@ -52,16 +52,16 @@
 	<script type="text/template" id="opponent_template">
 		<img class="table_avatar" alt: "avatar" src= <%= image_path "avatars/3_small.png" %>  >
 		<div class="player_info">
-			<p><%%= name %></p>
-			<p><%%= "$"+balance %></p>
+			<p><@ name @></p>
+			<p><@ "$"+balance @></p>
 		</div>
 		<div class="opponent_cards">
 			<%= image_tag("other/back_full_stack.png", alt: "covered cards", class: "covered_cards") %>
 		</div>
 	</script>
 	<script type="text/template" id="card_template">
-		<% card_file_paths.each do |key, content| %>
-			<img src= <%= content %>>
-		<% end %>
+		<@ temp = '<%= card_file_paths.to_json %>'; @>
+		<@ temp=temp.replace(/&quot;/g, '"'); @>
+		<img alt= <@= human_description @> src= <@= $.parseJSON(temp)[human_description] @> >
 	</script>
 <% end %>

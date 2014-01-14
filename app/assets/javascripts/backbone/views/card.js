@@ -5,6 +5,11 @@ app.CardView = Backbone.View.extend({
 	className: 'protagonist_card',
 	model: new app.Card(),
 	initialize: function(){
+		_.templateSettings = {
+			interpolate: /\<\@\=(.+?)\@\>/gim,
+			evaluate: 	 /\<\@(.+?)\@\>/gim,
+			escape: 		 /\<\@\-(.+?)\@\>/gim
+		};
 		this.template=_.template($('#card_template').html());
 	},
 
