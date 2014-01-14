@@ -7,9 +7,16 @@ module TablesHelper
 			temp = File.basename(a, ".png")
 			results[temp]=image_path "cards/"+temp+".png"
 		end
-		lg = Logger.new("log/kai_log")
-		lg.info(results.inspect)
 		return results
+	end
+	
+	def small_avatar_file_paths
+		paths = Dir.glob("app/assets/images/avatars/*_small.png")
+		results={}
+		paths.each do |a|
+			temp = File.basename(a, "_small.png")
+			results[temp] = image_path "avatars/"+temp+"_small.png"
+		end
 	end
 
 end

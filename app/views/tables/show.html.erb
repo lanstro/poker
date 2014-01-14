@@ -50,7 +50,8 @@
 	</div>
 
 	<script type="text/template" id="opponent_template">
-		<img class="table_avatar" alt: "avatar" src= <%= image_path "avatars/3_small.png" %>  >
+		
+		<img class="table_avatar" alt: "avatar" src= <@= $.parseJSON('<%= small_avatar_file_paths.to_json %>'.replace(/&quot;/g, '"'))[avatar] @>  >
 		<div class="player_info">
 			<p><@ name @></p>
 			<p><@ "$"+balance @></p>
@@ -60,8 +61,6 @@
 		</div>
 	</script>
 	<script type="text/template" id="card_template">
-		<@ temp = '<%= card_file_paths.to_json %>'; @>
-		<@ temp=temp.replace(/&quot;/g, '"'); @>
-		<img alt= <@= human_description @> src= <@= $.parseJSON(temp)[human_description] @> >
+		<img alt= <@= human_description @> src= <@= $.parseJSON('<%= card_file_paths.to_json %>'.replace(/&quot;/g, '"'))[human_description] @> >
 	</script>
 <% end %>

@@ -239,7 +239,6 @@ class Table
 	end
 	
 	def protagonist_cards(user)
-		KAILOGGER.info "called"
 		deal
 		@players.each do |p|
 			if p.user == user
