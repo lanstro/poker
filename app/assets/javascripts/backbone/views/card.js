@@ -10,6 +10,7 @@ app.CardView = Backbone.View.extend({
 			evaluate: 	 /\<\@(.+?)\@\>/gim,
 			escape: 		 /\<\@\-(.+?)\@\>/gim
 		};
+		console.log("testing");
 		this.template=_.template($('#card_template').html());
 	},
 
