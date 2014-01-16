@@ -6,23 +6,14 @@ app.HandView = Backbone.View.extend({
 		var col = new app.Hand();
 		this.collection= col;
 
-		_.bindAll(this, 'render', 'firstTime');
+		_.bindAll(this, 'render');
 
-		this.listenToOnce(col, "sync", this.firstTime);
-		this.listenTo(col, "all", this.eventTracker);
+		this.listenTo(col, "sync", this.synched);
+	//	this.listenTo(col, "all", this.eventTracker);
+		this.listenTo(col, "sort", this.sorted);
+		this.listenTo(window.pubSub, "blankClicked", this.blankClicked);
 	},
-	
-	firstTime: function(arg){
-		console.log("hand's firstTime called");
-		console.log("firstTime's argument: "+JSON.stringify(arg));
-		this.listenTo(this.collection, 'change', this.changed);
-		this.render();
-	},
-	
-	changed: function(arg){
-		console.log("changed");
-	},
-	
+
 	eventTracker: function(arg1, arg2){
 		console.log("hand view's 'all' event called");
 		console.log("event was: "+arg1);
@@ -42,19 +33,108 @@ app.HandView = Backbone.View.extend({
 		}
 	},
 	
-	render: function(){
-		console.log("render called");
-		this.$el.empty();
-		this.collection.each(function(card){
-			this.renderCard(card);
+	blankClicked: function(row, position){
+		var blanks = [position].concat(_.without([0, 1, 2, 3, 4, 5, 6, 7], position));
+		var toMove=[];
+		
+		_.each(this.collection.models, function(card){
+		
+			if(card.get('row') === row){
+				blanks=_.without(blanks, card.get('position'));
+				if(card.get('highlighted')){
+					card.toggleHighlighted();
+				}
+			}
+			else if(card.get('highlighted')){
+				toMove.push(card);
+			}
+		});
+
+		if(toMove.length === 0){
+			return;
+		}
+
+		_.each(blanks, function(position){
+			if(toMove.length > 0){
+				var card = toMove.pop();
+				card.set({"row": row, "position": position, "highlighted": false});
+			}
 		}, this);
+		this.render();
+	},
+	
+	sorted: function(){
+		var row=0;
+		var cards_in_current_row=0;
+		var layout=[3, 5, 5];
+		
+		_.each(this.collection.models, function(model){
+			model.set('row', row);
+			model.set('position', layout[row] - cards_in_current_row - 1);
+			cards_in_current_row++;
+			if(cards_in_current_row >= layout[row]){
+				row++;
+				cards_in_current_row=0;
+			}
+		}, this);
+		
+		this.render();
+	},
+	
+	render: function(){
+	
+		this.$el.empty();
+		for(var row = 2; row >= 0 ; row--){
+			var cardsInRow = this.collection.models.filter(function(card){
+				if(card.get('row') === row){
+					return true;
+				}
+			});
+			for(var position = 0; position < 8; position++){
+				var correctCard = cardsInRow.filter(function(card){
+					if(card.get('position') === position){
+						return true;
+					}
+				});
+				if(correctCard.length === 1 ){
+					this.renderCard(correctCard[0]);
+				}
+				else{
+					this.renderCard( new app.Card({
+						human_description: "blank",
+						position: position,
+						row: row
+					}));
+				}
+			}
+		}
+
+/*
+		var row=0;
+		var cards_in_current_row=0;
+		var layout=[3, 5, 5];
+		var cards_per_row=8;
+		var count = 0;
+		
+		for(row = 0; row < 3; row++){
+			for (cards_in_current_row = 0; cards_in_current_row < cards_per_row; cards_in_current_row++){
+				if((cards_in_current_row >= cards_per_row-layout[row] ) && this.collection.models[count]){
+					this.renderCard(this.collection.models[count]);
+					count++;
+				}
+				else {
+					this.renderCard(new app.Card({human_description: "blank"}));
+				}
+			}
+		}
+*/
 		return this;
 	},
 	renderCard: function(card){
 		var cardView=new app.CardView({
 			model:card,
 		});
-		this.$el.append(cardView.render().$el);
+		this.$el.prepend(cardView.render().$el);
 	},
 	
 	

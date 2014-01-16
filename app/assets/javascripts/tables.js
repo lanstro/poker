@@ -23,7 +23,9 @@ var FRONT_HAND = 1,
 		STRAIGHT_FLUSH = 9;
 
 $(document).ready(function(){
+	window.pubSub = _.extend({}, Backbone.Events);
 	window.b = new app.OpponentsView();
 	window.a = new app.HandView();
+	window.c = new app.SortButtonsView();
 	
 });

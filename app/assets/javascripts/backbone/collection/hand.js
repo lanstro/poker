@@ -2,12 +2,49 @@ var app = app || {};
 
 app.Hand = Backbone.Collection.extend({
 	model: app.Card,
+	sortMethod: "value",
 	
 	initialize: function(){
 		this.url=$('#table').data('table_id')+'/protagonist_cards';
 		this.fetch();
 		console.log("cards collection initialized");
-	}
+		_.bindAll(this, 'sortByVal', 'sortBySuit');
+		this.listenTo(window.pubSub, "sortByVal", this.sortByVal);
+		this.listenTo(window.pubSub, "sortBySuit", this.sortBySuit);
+	},
+	
+	sortByVal: function(){
+		if(this.sortMethod === "suit"){
+			this.sortMethod = "value";
+			this.sort();
+		}
+	},
+	
+	sortBySuit: function(){
+		if(this.sortMethod === "value"){
+			this.sortMethod = "suit";
+			this.sort();
+		}
+	},
+
+	comparator: function(card){
+		if(this.sortMethod === 'suit'){
+			return card.get('suit');
+		}
+		else {
+			console.log('comparator called on '+JSON.stringify(card));
+			result = card.get('val') % 13;
+			if (result === KING) {
+				result = KING_COMPARATOR;
+			}
+			else if (result === ACE) {
+				result = ACE_COMPARATOR;
+			}
+			console.log('comparator going to return '+result);
+			return result;
+		}
+	},
+	
 /*
 	
 	comparator: function(a, b){

@@ -25,9 +25,7 @@
 			</div>
 			<div id="interface">
 				<div id="sort_buttons">
-					<%= image_tag("other/by_val.png", alt: "sort by value", class: "sort_button") %>
-					<%= image_tag("other/by_suit.png", alt: "sort by suit", class: "sort_button") %>
-					<%= image_tag("other/swap_cards.png", alt: "swap cards", class: "sort_button") %>
+
 				</div>
 				<div id="chat_box">
             <textarea id="log" disabled rows=7></textarea>
@@ -53,8 +51,8 @@
 		
 		<img class="table_avatar" alt: "avatar" src= <@= $.parseJSON('<%= small_avatar_file_paths.to_json %>'.replace(/&quot;/g, '"'))[avatar] @>  >
 		<div class="player_info">
-			<p><@ name @></p>
-			<p><@ "$"+balance @></p>
+			<p><@= name @></p>
+			<p><@= "$"+balance @></p>
 		</div>
 		<div class="opponent_cards">
 			<%= image_tag("other/back_full_stack.png", alt: "covered cards", class: "covered_cards") %>
@@ -62,5 +60,10 @@
 	</script>
 	<script type="text/template" id="card_template">
 		<img alt= <@= human_description @> src= <@= $.parseJSON('<%= card_file_paths.to_json %>'.replace(/&quot;/g, '"'))[human_description] @> >
+	</script>
+	<script type ="text/template" id="sort_buttons_template">
+		<%= image_tag("other/by_val.png", alt: "sort by value", class: "sort_button", id: "sort_by_val") %>
+		<%= image_tag("other/by_suit.png", alt: "sort by suit", class: "sort_button", id: "sort_by_suit") %>
+		<%= image_tag("other/swap_cards.png", alt: "swap cards", class: "sort_button", id: "swap_cards") %>
 	</script>
 <% end %>
