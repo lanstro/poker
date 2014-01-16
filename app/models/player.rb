@@ -71,7 +71,7 @@ class Player
 	def external_info
 		return {seat: @seat,
 						name: @name, 
-					  avatar: @avatar, 
+					  avatar: @avatar,
 						balance: @balance, 
 						in_current_hand: @in_current_hand, 
 						in_for_next_hand: @in_for_next_hand, 

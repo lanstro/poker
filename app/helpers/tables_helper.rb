@@ -15,8 +15,9 @@ module TablesHelper
 		results={}
 		paths.each do |a|
 			temp = File.basename(a, "_small.png")
-			results[temp] = image_path ("avatars/"+temp.to_s+"_small.png")
+			results[temp]=image_path "avatars/"+temp+"_small.png"
 		end
+		return results
 	end
 
 end
