@@ -8,8 +8,7 @@ app.HandView = Backbone.View.extend({
 
 		_.bindAll(this, 'render');
 
-		this.listenTo(col, "sync", this.synched);
-	//	this.listenTo(col, "all", this.eventTracker);
+		this.listenTo(col, "all", this.eventTracker);
 		this.listenTo(col, "sort", this.sorted);
 		this.listenTo(window.pubSub, "blankClicked", this.blankClicked);
 	},
@@ -69,8 +68,9 @@ app.HandView = Backbone.View.extend({
 		var layout=[3, 5, 5];
 		
 		_.each(this.collection.models, function(model){
-			model.set('row', row);
-			model.set('position', layout[row] - cards_in_current_row - 1);
+			model.set({'row'		 		: row, 
+								 'position'		: layout[row] - cards_in_current_row - 1,
+								 'highlighted': false});
 			cards_in_current_row++;
 			if(cards_in_current_row >= layout[row]){
 				row++;
@@ -108,28 +108,9 @@ app.HandView = Backbone.View.extend({
 				}
 			}
 		}
-
-/*
-		var row=0;
-		var cards_in_current_row=0;
-		var layout=[3, 5, 5];
-		var cards_per_row=8;
-		var count = 0;
-		
-		for(row = 0; row < 3; row++){
-			for (cards_in_current_row = 0; cards_in_current_row < cards_per_row; cards_in_current_row++){
-				if((cards_in_current_row >= cards_per_row-layout[row] ) && this.collection.models[count]){
-					this.renderCard(this.collection.models[count]);
-					count++;
-				}
-				else {
-					this.renderCard(new app.Card({human_description: "blank"}));
-				}
-			}
-		}
-*/
 		return this;
 	},
+	
 	renderCard: function(card){
 		var cardView=new app.CardView({
 			model:card,

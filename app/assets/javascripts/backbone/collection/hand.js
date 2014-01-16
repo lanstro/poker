@@ -16,15 +16,15 @@ app.Hand = Backbone.Collection.extend({
 	sortByVal: function(){
 		if(this.sortMethod === "suit"){
 			this.sortMethod = "value";
-			this.sort();
 		}
+		this.sort();
 	},
 	
 	sortBySuit: function(){
 		if(this.sortMethod === "value"){
 			this.sortMethod = "suit";
-			this.sort();
 		}
+		this.sort();
 	},
 
 	comparator: function(card){
@@ -32,80 +32,61 @@ app.Hand = Backbone.Collection.extend({
 			return card.get('suit');
 		}
 		else {
-			console.log('comparator called on '+JSON.stringify(card));
-			result = card.get('val') % 13;
-			if (result === KING) {
-				result = KING_COMPARATOR;
-			}
-			else if (result === ACE) {
-				result = ACE_COMPARATOR;
-			}
-			console.log('comparator going to return '+result);
-			return result;
+			return card.valueComputed();
 		}
 	},
 	
-/*
-	
-	comparator: function(a, b){
-		// console.log("Comparing "+a.JSON_value().value_string+" with "+b.JSON_value().value_string);
+	handNumbersValid: function(){
 		
-		a = a.valueComputed();
-		b = b.valueComputed();
+		var positions = [0, 0, 0];
 		
-		if(a > b){
-			//console.log(1);
-			return 1;
+		_.each(this.models, function(card){
+			positions[card.get('row')]++;
+		});
+		if(positions.join(',') === [3, 5, 5].join(',')){
+			return true;
 		}
-		else if (a===b){
-			//console.log(0);
-			return 0;
-		}
-		else {
-			//console.log(-1);
-			return -1;
-		}
+		return false;
 	},
 	
 	handValid: function(){
-		if(this.handPosition === FRONT_HAND){
-			if(this.length != 3){
-				return false
-			}
+		if(!this.handNumbersValid()){
+			return false;
 		}
-		else if (this.length != 5){
-			return false
+		if(this.handValue(FRONT_HAND) > this.handValue(BACK_HAND)){
+			return false;
 		}
 		return true;
 	},
 	
-	handValue: function(){
-		if(!this.handValid()){
-			return null;
-		}
-		if(this.handPosition === MID_HAND && MID_IS_LO){
-			return this.calcLoHandValue();
+	handValue: function(whichHand){
+	
+		if(whichHand === MID_HAND && MID_IS_LO){
+			return this.calcLoHandValue(whichHand);
 		}
 		else{
-			return this.calcHiHandValue();
+			return this.calcHiHandValue(whichHand);
 		}
 		
 	},
-	
-	calcHiHandValue: function(){
+	/*
+	calcHiHandValue: function(whichHand){
 		var isSuited = true;
 		var suit;
-		var values=this.models.map( function(model, key){
-			suit = suit || model.suit;
-			if(suit != model.suit){
-				isSuited=false;
-			}
-			return model.valueComputed();
-		}).sort(function(a,b){return a-b});
+		var values=this.models.filter(function(card){
+				return card.get('row')===whichHand;
+			}).map( function(card){
+				suit = suit || card.suit;
+				if(suit != card.suit){
+					isSuited=false;
+				}
+				return card.valueComputed();
+			}).sort(function(a,b){return a-b});
 		
-		var multiples=_.countBy(this.models, function(model){
-			return model.valueComputed();
+		var multiples=_.countBy(this.models, function(card){
+			return card.valueComputed();
 		});
+		
 		var numberUniqueValues = _.size(multiples);
 		
 		var isStraight = false;
@@ -166,13 +147,11 @@ app.Hand = Backbone.Collection.extend({
 		return null;
 	},
 	
-	calcLoHandValue: function (hand){
+	calcLoHandValue: function (whichHand){
 		var values=_.uniq(this.models.map( function(model, key){
 			return model.valueComputed();
 		})).sort(function(a,b){return a-b});
 		return values.join("");
 	}
-	
 */
-	
 });

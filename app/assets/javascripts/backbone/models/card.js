@@ -8,8 +8,8 @@ app.Card = Backbone.Model.extend ({
 		else{
 			this.set('highlighted', true);
 		}
-	}
-	/*
+	},
+
 	valueHuman:function(){
 		var result = this.get('val')%13;
 		switch(result){
@@ -31,12 +31,7 @@ app.Card = Backbone.Model.extend ({
 		}
 		return result;
 	},
-	JSON_value: function(){
-		if(!this.get('val')){
-			return ({human_description:'blank'});
-		}
-		return ({human_description: this.valueHuman()+this.suit});
-	},
+
 	valueComputed: function(){
 		var result = this.get('val') % 13;
 		if (result === KING){
@@ -46,6 +41,6 @@ app.Card = Backbone.Model.extend ({
 			result = ACE_COMPARATOR;
 		}
 		return result;
-	},
-	*/
+	}
+
 });

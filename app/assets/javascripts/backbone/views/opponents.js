@@ -11,7 +11,7 @@ app.OpponentsView = Backbone.View.extend({
 		
 		
 		this.listenToOnce(col, "sync", this.firstTime);
-		this.listenTo(col, "all", this.eventTracker);
+		//this.listenTo(col, "all", this.eventTracker);
 		
 	},
 	
