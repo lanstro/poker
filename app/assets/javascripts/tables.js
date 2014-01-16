@@ -23,6 +23,7 @@ var FRONT_HAND = 1,
 		STRAIGHT_FLUSH = 9;
 
 $(document).ready(function(){
-	window.a = new app.HandView();
 	window.b = new app.OpponentsView();
+	window.a = new app.HandView();
+	
 });

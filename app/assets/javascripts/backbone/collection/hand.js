@@ -4,15 +4,19 @@ app.Hand = Backbone.Collection.extend({
 	model: app.Card,
 	
 	initialize: function(){
-		this.data={},
-		this.url=$('#table').data('table_id')+'/protagonist_cards'
+		this.data={};
+		this.url=$('#table').data('table_id')+'/protagonist_cards';
+		this.update();
+
+		console.log("cards collection initialized");
 	},
+	
 	update: function(){
 		self=this;
 		self.fetch({
 			success: function(model, response){
 				self.data=model;
-				self.trigger("protagonist_cards:updated");
+				self.trigger("protagonist_cards:initialized", this);
 			}
 		});
 	}

@@ -5,16 +5,22 @@ app.HandView = Backbone.View.extend({
 	initialize: function(){
 		var col = new app.Hand();
 		this.collection= col;
-		col.update();
 		
-		_.each(this.collection.data, function(value){
+		_.each(col.data, function(value){
 			this.addCard(value);
 		});
 
-		_.bindAll(this, 'render');
+		_.bindAll(this, 'render', 'collectionChanged');
 		
-		this.collection.on("protagonist_cards:updated", this.render);
 		
+		this.listenTo(col, "change", this.collectionChanged);
+		this.listenTo(col, "sync", this.render);
+		this.listenTo(col, "all", this.eventTracker);
+	},
+	
+	eventTracker: function(arg1, arg2){
+		console.log("hand view's 'all' event called");
+		console.log("event was: "+arg1);
 	},
 	
 	addCard: function(value){
@@ -23,6 +29,7 @@ app.HandView = Backbone.View.extend({
 		newCard.update(value);
 	},
 	render: function(){
+		console.log("render called");
 		this.$el.empty();
 		this.collection.each(function(card){
 			this.renderCard(card);
@@ -34,6 +41,11 @@ app.HandView = Backbone.View.extend({
 			model:card,
 		});
 		this.$el.append(cardView.render().$el);
+	},
+	
+	collectionChanged: function(changed){
+		console.log("hand's changed callback called");
+		console.log(changed.toJSON());
 	}
 	
 });
