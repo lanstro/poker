@@ -108,6 +108,7 @@ app.HandView = Backbone.View.extend({
 				}
 			}
 		}
+		window.pubSub.trigger("protagonistHandRendered");
 		return this;
 	},
 	

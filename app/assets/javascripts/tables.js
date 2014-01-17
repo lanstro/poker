@@ -27,5 +27,5 @@ $(document).ready(function(){
 	window.b = new app.OpponentsView();
 	window.a = new app.HandView();
 	window.c = new app.SortButtonsView();
-	
+	window.d = new app.ProtagonistHandDescriptionView();
 });

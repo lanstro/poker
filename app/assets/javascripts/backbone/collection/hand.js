@@ -8,9 +8,10 @@ app.Hand = Backbone.Collection.extend({
 		this.url=$('#table').data('table_id')+'/protagonist_cards';
 		this.fetch();
 		//console.log("cards collection initialized");
-		_.bindAll(this, 'sortByVal', 'sortBySuit');
+		_.bindAll(this, 'sortByVal', 'sortBySuit', 'recalcHands');
 		this.listenTo(window.pubSub, "sortByVal", this.sortByVal);
 		this.listenTo(window.pubSub, "sortBySuit", this.sortBySuit);
+		this.listenTo(window.pubSub, "protagonistHandRendered", this.recalcHands);
 	},
 	
 	sortByVal: function(){
@@ -36,6 +37,16 @@ app.Hand = Backbone.Collection.extend({
 		}
 	},
 	
+	recalcHands: function(){
+		var descriptions= ["Invalid", "Invalid", "Invalid"];
+		for(i=0; i<3; i++){
+			if(this.handNumbersValid(i)){
+				descriptions[i] = this.evaluateSubhand(i)["humanName"];
+			}
+		}
+		window.pubSub.trigger("protagonistHandDescriptionsUpdated",  descriptions);
+	},
+	
 	partitionSubhands: function(){
 		
 		result = [[], [], []];
@@ -45,7 +56,7 @@ app.Hand = Backbone.Collection.extend({
 		return result;
 	},
 	
-	handNumbersValid: function(){
+	handNumbersValid: function(whichHand){
 	
 		var positions = [0, 0, 0];
 		
@@ -53,10 +64,16 @@ app.Hand = Backbone.Collection.extend({
 			positions[card.get('row')]++;
 		});
 		
-		if(this.partitionSubhands.join(',') === [3, 5, 5].join(',')){
-			return true;
+		if(typeof whichHand === "undefined"){
+			if(this.partitionSubhands().join(',') === [3, 5, 5].join(',')){
+				return true;
+			}
+			return false;
 		}
-		return false;
+		if(positions[whichHand] !== [3, 5, 5][whichHand]){
+			return false;
+		}
+		return true;
 	},
 	
 	handValid: function(){
@@ -114,7 +131,7 @@ app.Hand = Backbone.Collection.extend({
 		var isStraight = false;
 		
 		if (!loHand && whichHand != FRONT_HAND && (_.size(multiples) === _.size(cards))){  
-			if (_.last(values) - (values[0] === _.size(values)-1) ||
+			if ( ( (_.last(values) - values[0]) === _.size(values)-1) ||
 				(_.last(values) === ACE_COMPARATOR && values[values.length-1] === 5)){
 				isStraight=true;
 			}
@@ -196,7 +213,7 @@ app.Hand = Backbone.Collection.extend({
 			case STRAIGHT:
 			case FLUSH:
 			case STRAIGHT_FLUSH:
-				cards = _.sortBy(cards, function(card){ card.valueComputed(loHand); });
+				cards = _.sortBy(cards, function(card){ card.valueComputed(loHand); }).reverse();
 				var cardNames = ""
 				humanName+=" ";
 				_.each(cards, function(card){ humanName=humanName+card.get("face_value_short");});
@@ -225,7 +242,7 @@ app.Hand = Backbone.Collection.extend({
 					}
 				});
 				
-				remaining=_.sortBy(remaining, function(card){ card.valueComputed(loHand) });
+				remaining=_.sortBy(remaining, function(card){ card.valueComputed(loHand) }).reverse();
 				cards=temp.concat(remaining);
 				switch (handName){
 					case FULL_HOUSE:

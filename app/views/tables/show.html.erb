@@ -21,8 +21,11 @@
 		</div>
 		
 		<div id= "protagonist">
+			<div id="protagonist_card_values">
+			</div>
 			<div id="protagonist_cards">
 			</div>
+
 			<div id="interface">
 				<div id="sort_buttons">
 
@@ -66,4 +69,11 @@
 		<%= image_tag("other/by_suit.png", alt: "sort by suit", class: "sort_button", id: "sort_by_suit") %>
 		<%= image_tag("other/swap_cards.png", alt: "swap cards", class: "sort_button", id: "swap_cards") %>
 	</script>
+	
+	<script type = "text/template" id="protagonist_card_values_template">
+		<p class="protagonist_card_description"><%%= descriptions[FRONT_HAND] %></p>
+		<p class="protagonist_card_description"><%%= descriptions[MID_HAND] %></p>
+		<p class="protagonist_card_description"><%%= descriptions[BACK_HAND] %></p>
+	</script>
+	
 <% end %>
