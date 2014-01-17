@@ -228,7 +228,7 @@ app.Hand = Backbone.Collection.extend({
 			case STRAIGHT:
 			case FLUSH:
 			case STRAIGHT_FLUSH:
-				cards = _.sortBy(cards, function(card){ card.valueComputed(loHand); }).reverse();
+				cards = _.sortBy(cards, function(card){ return card.valueComputed(loHand); }).reverse();
 				var cardNames = ""
 				humanName+=" ";
 				_.each(cards, function(card){ humanName=humanName+card.get("face_value_short");});
@@ -324,8 +324,8 @@ app.Hand = Backbone.Collection.extend({
 				humanName = humanName+", "+cards[0].get("face_value_long")+"s and "+cards[2].get("face_value_long")+"s"
 				
 				result= {value: handName, humanName: humanName}
+				
 		}
-		
 		var uniqueValue = result["value"].toString(16);
 		_.each(cards, function(card){
 			uniqueValue+=card.valueComputed(loHand).toString(16)
