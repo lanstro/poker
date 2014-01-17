@@ -16,8 +16,6 @@ app.OpponentsView = Backbone.View.extend({
 	},
 	
 	firstTime: function(arg){
-		console.log("opponent's firstTime called");
-		console.log("firstTime's argument: "+JSON.stringify(arg));
 		this.listenTo(this.collection, 'change', this.changed);
 		this.render();
 	},
@@ -46,7 +44,6 @@ app.OpponentsView = Backbone.View.extend({
 	},
 	
 	render: function(){
-		console.log("opponents view render called");
 		this.$el.empty();
 		this.collection.each(function(player){
 			this.renderOpponent(player);

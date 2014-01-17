@@ -139,7 +139,7 @@ class Hand
 						hand_name = PAIR
 					end
 				else
-					hand_name = HI_CARD
+					hand_name = HIGH_CARD
 			end
 		end
 					
@@ -153,7 +153,7 @@ class Hand
 			human_name = ["high card", "pair", "two pair", "three of a kind", "straight", "flush", "full house", 
 				"four of a kind", "five of a kind", "straight flush"][hand_name];
 		else 
-			if hand_name == HI_CARD
+			if hand_name == HIGH_CARD
 				human_name = "lo -"
 			else
 				human_name = "compromised lo with "+["high card", "pair", "two pair", "three of a kind", "straight", "flush", 
@@ -164,11 +164,10 @@ class Hand
 		case hand_name
 			when FIVE_OF_A_KIND
 				@arrangement[index]={cards: cards, value: hand_name, human_name: human_name+" "+cards.first.face_value_long+"s"}
-			when HI_CARD, STRAIGHT, FLUSH, STRAIGHT_FLUSH
+			when HIGH_CARD, STRAIGHT, FLUSH, STRAIGHT_FLUSH
 				cards = cards.sort_by{ |card| card.value_comparison(lo_hand) }.reverse
-				card_names = ""
-				cards.each { |card| card_names+=card.face_value_short }
-				human_name=human_name+" "+card_names
+				human_name+=" "
+				cards.each { |card| human_name+=card.face_value_short }
 				@arrangement[index]= {cards: cards, value: hand_name, human_name: human_name }
 			when PAIR, THREE_OF_A_KIND, FOUR_OF_A_KIND, FULL_HOUSE
 				highest = multiples.key(multiples.values.max)
@@ -243,7 +242,7 @@ class Hand
 	
 	def eligible_for_sugar?(index)
 		if lo_hand?(index)
-			if @arrangement[index][:value] == HI_CARD and
+			if @arrangement[index][:value] == HIGH_CARD and
 				 @arrangement[index][:cards].first.value_comparison <= SUGARS[index]
 				 return true
 			else

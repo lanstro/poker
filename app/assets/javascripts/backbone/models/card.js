@@ -10,37 +10,16 @@ app.Card = Backbone.Model.extend ({
 		}
 	},
 
-	valueHuman:function(){
-		var result = this.get('val')%13;
-		switch(result){
-			case ACE:
-				result='A';
-				break;
-			case TEN:
-				result='T';
-				break;
-			case JACK:
-				result='J';
-				break;
-			case QUEEN:
-				result='Q';
-				break;
-			case KING:
-				result='K';
-				break;
-		}
-		return result;
-	},
-
-	valueComputed: function(){
+	valueComputed: function(loHand){
 		var result = this.get('val') % 13;
-		if (result === KING){
-			result = KING_COMPARATOR;
-		}
-		else if (result === ACE){
-			result = ACE_COMPARATOR;
+		if(!loHand){
+			if (result === KING){
+				result = KING_COMPARATOR;
+			}
+			else if (result === ACE){
+				result = ACE_COMPARATOR;
+			}
 		}
 		return result;
 	}
-
 });
