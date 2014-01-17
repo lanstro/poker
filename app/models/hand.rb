@@ -2,15 +2,13 @@ class Hand
 
 	SUGARS = [THREE_OF_A_KIND, 6, FOUR_OF_A_KIND]
 
-	attr_reader :owner, :cards, :arrangement, :deck
+	attr_reader :owner, :cards, :arrangement, :table
 	
 	
-	def initialize(deck=nil, owner=nil)
+	def initialize(table=nil, owner=nil)
 		@owner = owner
-		@deck = deck
+		@table = table
 		@cards = []
-		
-		#arrangement = [front_hand:{ :cards, :value, :unique_value, :human_name}, mid_hand...]
 		
 		@arrangement = [{}, {}, {}]
 	end
@@ -41,6 +39,34 @@ class Hand
 		@arrangement = [ {cards: @cards[5..7], value: nil, human_name: nil },
 										 {cards: @cards[0..4], value: nil, human_name: nil  },
 										 {cards: @cards[8..12], value: nil, human_name: nil  } ]
+	end
+	
+	def find_card_by_val(val)
+		@cards.each do |card|
+			if card.val == val
+				return card
+			end
+		end
+		return nil
+	end
+	
+	def post_protagonist_cards (arrangement)
+		@arrangement = [ {cards: [], value: nil, human_name: nil },
+										 {cards: [], value: nil, human_name: nil  },
+										 {cards: [], value: nil, human_name: nil  } ]
+		which_hand = 0
+		arrangement.each do |row|
+			row.each do |val|
+				@arrangement[which_hand][:cards].push (find_card_by_val val)
+			end
+			which_hand+=1
+		end
+		evaluate_all_subhands
+		return @arrangement
+	end
+	
+	def evaluate_all_subhands
+		3.times { |i|	evaluate_subhand(i) }
 	end
 	
 	def test_evaluate_hands

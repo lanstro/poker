@@ -10,8 +10,9 @@ Poker::Application.routes.draw do
 	
 	resources :tables
 	
-	get 'tables/:id/players_info' => 'tables#players_info'
-	get 'tables/:id/protagonist_cards' => 'tables#protagonist_cards'
+	get  'tables/:id/players_info' => 'tables#players_info'
+	get  'tables/:id/protagonist_cards' => 'tables#protagonist_cards'
+	post 'tables/:id/post_protagonist_cards' => 'tables#post_protagonist_cards'
 	
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".

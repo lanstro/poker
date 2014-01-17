@@ -37,15 +37,11 @@ app.HandView = Backbone.View.extend({
 		var toMove=[];
 		
 		_.each(this.collection.models, function(card){
-		
-			if(card.get('row') === row){
-				blanks=_.without(blanks, card.get('position'));
-				if(card.get('highlighted')){
-					card.toggleHighlighted();
-				}
-			}
-			else if(card.get('highlighted')){
+			if(card.get('highlighted')){
 				toMove.push(card);
+			}
+			else if(card.get('row') === row){
+				blanks=_.without(blanks, card.get('position'));
 			}
 		});
 

@@ -47,6 +47,21 @@ app.Hand = Backbone.Collection.extend({
 		window.pubSub.trigger("protagonistHandDescriptionsUpdated",  descriptions);
 	},
 	
+	postHand: function(){
+		result = [[], [], []];
+		_.each(this.models, function(card){
+			result[card.get("row")].push(card.get("val"));
+		});
+		console.log(JSON.stringify(result));
+		$.ajax({
+			type: "POST",
+			url: $('#table').data('table_id')+"/post_protagonist_cards", 
+			dataType: "json",
+			data: JSON.stringify({arrangement: result}), 
+			contentType: 'application/json'
+		});
+	},
+	
 	partitionSubhands: function(){
 		
 		result = [[], [], []];

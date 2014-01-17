@@ -17,7 +17,7 @@ class Player
 		
 		@user=player
 		@table = table
-		@hand=Hand.new
+		@hand=Hand.new(@table, self)
 		@in_current_hand=true
 		@in_for_next_hand = true
 		@balance=balance

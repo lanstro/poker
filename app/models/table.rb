@@ -246,6 +246,29 @@ class Table
 			end
 		end
 	end
+	
+	def post_protagonist_cards(user, arrangement)
+		# check that arrangement matches user's cards
+		player, card_vals = nil, nil
+		@players.each do |p|
+			if p.user == user
+				card_vals=p.hand.cards.map do |card|
+					card.val
+				end
+				player = p
+			end
+		end
+		
+		if card_vals.sort != arrangement.flatten.sort
+			# dedicate a separate log file?
+			logger.info user.name+" is a CHEATER"
+			return "Cheater"
+		end
+
+		# update player's hand's arrangement accordingly
+		return player.hand.post_protagonist_cards(arrangement)
+		
+	end
 		
 	# class methods
 	

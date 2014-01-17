@@ -16,14 +16,15 @@ app.SortButtonsView = Backbone.View.extend({
 	},
 	
 	sortByVal: function(){
-		window.pubSub.trigger("sortByVal", this);
+		window.pubSub.trigger("sortByVal");
 	},
 	
 	sortBySuit: function(){
-		window.pubSub.trigger("sortBySuit", this);
+		window.pubSub.trigger("sortBySuit");
 	},
 	
 	swapCards: function(){
+		window.pubSub.trigger("swapCards");
 	}
 	
 });

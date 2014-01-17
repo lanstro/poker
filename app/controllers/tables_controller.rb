@@ -1,6 +1,6 @@
 class TablesController < ApplicationController
 
-	before_action :signed_in_user, only: [:destroy, :join, :leave, :create, :ready, :message, :fold, :protagonist_cards]
+	before_action :signed_in_user, only: [:destroy, :join, :leave, :create, :ready, :message, :fold, :protagonist_cards, :post_protagonist_cards]
 	respond_to :json
 
   def new
@@ -51,6 +51,14 @@ class TablesController < ApplicationController
 	def protagonist_cards
 		@protagonist_cards = Table.find_by_id(params[:id]).protagonist_cards(current_user)
 		respond_with @protagonist_cards
+	end
+	
+	def post_protagonist_cards
+		@table = Table.find_by_id(params[:id])
+		result = @table.post_protagonist_cards(current_user, params[:arrangement])
+		respond_to do |format|
+			format.json { render :json => { :status => :ok, :message => "Success!", :arrangement => result}}
+		end
 	end
 	
 	private
