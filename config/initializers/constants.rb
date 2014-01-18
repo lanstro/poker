@@ -3,6 +3,7 @@ FRONT_HAND = 0
 MID_HAND   = 1
 BACK_HAND   = 2
 OVERALL_SUGAR_INDEX = 3
+SUBHAND_NAMES = ["front", "middle", "back"]
 MID_IS_LO  = true
 ACE        = 1
 TEN        = 10
@@ -22,5 +23,6 @@ FOUR_OF_A_KIND = 7
 FIVE_OF_A_KIND = 8
 STRAIGHT_FLUSH = 9
 CARDS_PER_DECK = 52
+
 
 KAILOGGER = Logger.new("log/Kai.log")

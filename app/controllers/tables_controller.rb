@@ -61,6 +61,13 @@ class TablesController < ApplicationController
 		end
 	end
 	
+	def status
+		@table = Table.find_by_id(params[:id])
+		respond_to do |format|
+			format.json { render :json => { :status => :ok, :message => "success!", :status => @table.status, :broadcast => @table.current_message } }
+		end
+	end
+	
 	private
 	
 		def signed_in_user

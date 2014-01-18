@@ -4,6 +4,9 @@ class Hand
 
 	attr_reader :owner, :cards, :arrangement, :table
 	
+  def my_logger
+    @@my_logger ||= Logger.new("#{Rails.root}/log/my.log")
+  end
 	
 	def initialize(table=nil, owner=nil)
 		@owner = owner
@@ -23,16 +26,27 @@ class Hand
 	end
 	
 	def hand_valid
+		my_logger.info "hand_valid called for "+@owner.name
+		# need to replace auto_arrange with real arrangement for human players
+		auto_arrange
+		evaluate_all_subhands
 		if @arrangement[FRONT_HAND][:cards].size != 3 or
 			 @arrangement[MID_HAND][:cards].size != 5 or
 			 @arrangement[BACK_HAND][:cards].size != 5 or
 			 @cards.size != 13
+			 my_logger.info "hand not valid"
 			return false
-		elsif Hand.compare_value(@arrangements[FRONT_HAND][:cards], @arrangements[BACK_HAND][:cards]) > 0
+		elsif front_bigger_than_back?
+			my_logger.info "hand not valid"
 			return false
 		end
-		return true;
+		my_logger.info "hand is valid"
+		return true
 	end
+	
+  def my_logger
+    @@my_logger ||= Logger.new("#{Rails.root}/log/my.log")
+  end
 	
 	def auto_arrange
 		@cards.sort_by! { |card| card.value_comparison }
@@ -99,6 +113,25 @@ class Hand
 			return false
 		end
 	end
+	
+	def unique_value(value, cards, lo_hand = false)
+	
+		result = value.to_s(16)
+		cards.each do |card|
+			result+=card.value_comparison(lo_hand).to_s(16)
+		end
+		return result.to_i(16)
+	end
+	
+
+	def front_bigger_than_back?
+		
+		my_logger.info "front_bigger_than_back? called"
+		return unique_value(@arrangement[FRONT_HAND][:value], @arrangement[FRONT_HAND][:cards]) >
+					 unique_value(@arrangement[BACK_HAND][:value],  @arrangement[BACK_HAND][:cards][0..2])
+		
+	end
+	
 	
 	def evaluate_subhand(index)
 		
@@ -258,12 +291,7 @@ class Hand
 				
 				@arrangement[index]= {cards: temp, value: hand_name, human_name: human_name}
 		end
-		
-		unique_value = @arrangement[index][:value].to_s(16) 
-		@arrangement[index][:cards].each do |card|
-			unique_value+=card.value_comparison(lo_hand).to_s(16)
-		end
-		@arrangement[index][:unique_value]=unique_value.to_i(16)
+		@arrangement[index][:unique_value] = unique_value(@arrangement[index][:value], @arrangement[index][:cards], lo_hand)
 	end
 	
 	def eligible_for_sugar?(index)
