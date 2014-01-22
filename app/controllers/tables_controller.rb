@@ -57,14 +57,14 @@ class TablesController < ApplicationController
 		@table = Table.find_by_id(params[:id])
 		result = @table.post_protagonist_cards(current_user, params[:arrangement])
 		respond_to do |format|
-			format.json { render :json => { :status => :ok, :message => "Success!", :arrangement => result}}
+			format.json { render :json => { :status => :ok, :arrangement => result}}
 		end
 	end
 	
 	def status
 		@table = Table.find_by_id(params[:id])
 		respond_to do |format|
-			format.json { render :json => { :status => :ok, :message => "success!", :status => @table.status, :broadcast => @table.current_message } }
+			format.json { render :json => { :status => :ok, :status => @table.status, :broadcast => @table.current_message } }
 		end
 	end
 	

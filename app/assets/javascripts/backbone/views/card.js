@@ -37,7 +37,7 @@ app.CardView = Backbone.View.extend({
 				console.log("nothing to push");
 			}
 			else {
-				window.pubSub.trigger("blankClicked", this.model.get("row"), this.model.get("position"));
+				app.pubSub.trigger("blankClicked", this.model.get("row"), this.model.get("position"));
 			}
 		}
 		else{

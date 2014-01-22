@@ -9,9 +9,9 @@ app.Hand = Backbone.Collection.extend({
 		this.fetch();
 		//console.log("cards collection initialized");
 		_.bindAll(this, 'sortByVal', 'sortBySuit', 'recalcHands');
-		this.listenTo(window.pubSub, "sortByVal", this.sortByVal);
-		this.listenTo(window.pubSub, "sortBySuit", this.sortBySuit);
-		this.listenTo(window.pubSub, "protagonistHandRendered", this.recalcHands);
+		this.listenTo(app.pubSub, "sortByVal", this.sortByVal);
+		this.listenTo(app.pubSub, "sortBySuit", this.sortBySuit);
+		this.listenTo(app.pubSub, "protagonistHandRendered", this.recalcHands);
 	},
 	
 	sortByVal: function(){
@@ -44,7 +44,7 @@ app.Hand = Backbone.Collection.extend({
 				descriptions[i] = this.evaluateSubhand(i)["humanName"];
 			}
 		}
-		window.pubSub.trigger("protagonistHandDescriptionsUpdated",  descriptions);
+		app.pubSub.trigger("protagonistHandDescriptionsUpdated",  descriptions);
 	},
 	
 	postHand: function(){

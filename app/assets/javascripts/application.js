@@ -20,3 +20,5 @@
 //= require railsy_backbone.datalink
 //= require backbone/poker
 //= require_tree .
+//= require websocket_rails/main
+

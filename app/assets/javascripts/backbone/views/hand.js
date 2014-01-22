@@ -7,10 +7,9 @@ app.HandView = Backbone.View.extend({
 		this.collection= col;
 
 		_.bindAll(this, 'render');
-
 		//this.listenTo(col, "all", this.eventTracker);
 		this.listenTo(col, "sort", this.sorted);
-		this.listenTo(window.pubSub, "blankClicked", this.blankClicked);
+		this.listenTo(app.pubSub, "blankClicked", this.blankClicked);
 	},
 
 	eventTracker: function(arg1, arg2){
@@ -104,7 +103,7 @@ app.HandView = Backbone.View.extend({
 				}
 			}
 		}
-		window.pubSub.trigger("protagonistHandRendered");
+		app.pubSub.trigger("protagonistHandRendered");
 		return this;
 	},
 	

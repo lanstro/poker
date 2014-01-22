@@ -23,9 +23,17 @@ var FRONT_HAND = 0,
 		STRAIGHT_FLUSH = 9;
 
 $(document).ready(function(){
-	window.pubSub = _.extend({}, Backbone.Events);
-	window.b = new app.OpponentsView();
-	window.a = new app.HandView();
-	window.c = new app.SortButtonsView();
-	window.d = new app.ProtagonistHandDescriptionView();
+
+	// replace this with better asset pipeline management
+	if($('#table').length > 0 ){
+		
+		app.pubSub = _.extend({}, Backbone.Events);
+		window.a = new app.HandView();
+		window.b = new app.OpponentsView();
+		window.c = new app.SortButtonsView();
+		window.d = new app.ProtagonistHandDescriptionView();
+		window.e = new app.ChatView();
+		window.f = new app.DealerView();
+	}
+	
 });

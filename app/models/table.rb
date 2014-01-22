@@ -203,6 +203,8 @@ class Table
 	
 	def broadcast_notification(msg)
 		@current_message = msg
+		result = { :user => "dealer", :status => @status, :broadcast => @current_message }
+		WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:table_announcement, result)
 	end
 	
 	# actual play

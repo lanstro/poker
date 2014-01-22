@@ -13,9 +13,8 @@
 	<h1>Table <%= @table.id %></h1>
 	<h2><%= description %></h2>
 
-	<div id = "table" data-table_id=<%= @table.id %>>
+	<div id = "table" data-table_id=<%= @table.id %> data-uri="<%= request.host %>:<%= request.port %>/websocket" >
 		<div id="announcements">
-			<p>Announcements here</p>
 		</div>
 		<div id = "opponents">
 		</div>
@@ -31,12 +30,6 @@
 
 				</div>
 				<div id="chat_box">
-            <textarea id="log" disabled rows=7></textarea>
-            </textarea>
-            <form id="input">
-                <input type="text" id="message_input">
-                <input type="submit" id="send_button" value="Send">
-            </form>
 				</div>
 				<div id="buttons">
 					<ul>
@@ -74,6 +67,15 @@
 		<p class="protagonist_card_description"><%%= descriptions[FRONT_HAND] %></p>
 		<p class="protagonist_card_description"><%%= descriptions[MID_HAND] %></p>
 		<p class="protagonist_card_description"><%%= descriptions[BACK_HAND] %></p>
+	</script>
+	
+	<script type = "text/template" id="chat_template">
+		<textarea id="log" readonly rows=7></textarea>
+		</textarea>
+		<form id="input">
+				<input type="text" id="message_input" autocomplete="off">
+				<input type="submit" id="send_button" value="Send">
+		</form>
 	</script>
 	
 <% end %>
