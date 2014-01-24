@@ -5,7 +5,5 @@ app.Opponents = Backbone.Collection.extend({
 	initialize: function(){
 		this.url=$('#table').data('table_id')+'/players_info';
 		this.fetch();
-		
-		console.log("opponents collection initialized");
 	}
 });

@@ -31,17 +31,17 @@ app.CardView = Backbone.View.extend({
 	},
 	
 	toggleHighlight: function(obj){
+	
+		if(app.status() < DEALING || app.status() > ALMOST_SHOWDOWN){
+			return;
+		}
+	
 		if(this.isBlank()){
-			if( $(".highlighted").length ===0 ){
-				// do nothing
-				console.log("nothing to push");
-			}
-			else {
+			if( $(".highlighted").length > 0 ){
 				app.pubSub.trigger("blankClicked", this.model.get("row"), this.model.get("position"));
 			}
 		}
 		else{
-			
 			this.model.toggleHighlighted();
 		}
 	},

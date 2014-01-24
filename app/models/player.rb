@@ -61,14 +61,22 @@ class Player
 		end
 	end
 	
-	def external_info
+	def external_info(cards_public)
+	
+		if cards_public
+			arrangement = @hand.arrangement
+		else
+			arrangement = [ {}, {}, {}]
+		end
+	
 		return {seat: 					 @seat,
 						name: 					 @name, 
 					  avatar: 				 @avatar,
 						balance: 				 @balance, 
 						in_current_hand: @in_current_hand, 
 						sittin_out: 		 @sittin_out, 
-						is_AI: 					 @is_AI}
+						is_AI: 					 @is_AI,
+						arrangement:		 arrangement}
 	end
 	
 end

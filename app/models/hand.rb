@@ -12,23 +12,26 @@ class Hand
 		@owner = owner
 		@table = table
 		@cards = []
-		
+		@arranged=false
 		@arrangement = [{}, {}, {}]
 	end
 	
 	def muck
 		@cards=[]
 		@arrangement = [{}, {}, {}]
+		@arranged=false
 	end
 	
 	def dealt_card(card)
 		@cards.push card
+		@arranged=false
 	end
 	
 	def hand_valid
-		my_logger.info "hand_valid called for "+@owner.name
 		# need to replace auto_arrange with real arrangement for human players
-		auto_arrange
+		if !@arranged
+			auto_arrange
+		end
 		evaluate_all_subhands
 		if @arrangement[FRONT_HAND][:cards].size != 3 or
 			 @arrangement[MID_HAND][:cards].size != 5 or
@@ -53,6 +56,7 @@ class Hand
 		@arrangement = [ {cards: @cards[5..7], value: nil, human_name: nil },
 										 {cards: @cards[0..4], value: nil, human_name: nil  },
 										 {cards: @cards[8..12], value: nil, human_name: nil  } ]
+		@arranged=true
 	end
 	
 	def find_card_by_val(val)
@@ -75,6 +79,7 @@ class Hand
 			end
 			which_hand+=1
 		end
+		@arranged = true
 		evaluate_all_subhands
 		return @arrangement
 	end
@@ -95,17 +100,6 @@ class Hand
 		end
 	end
 	
-	def deal_test_hand
-
-		13.times do |i|
-			dealt_card(Card.new(rand(13)+1))
-		end
-		
-		auto_arrange
-		test_evaluate_hands
-
-	end
-	
 	def lo_hand?(index)
 		if index==MID_HAND and MID_IS_LO
 			return true
@@ -123,15 +117,11 @@ class Hand
 		return result.to_i(16)
 	end
 	
-
 	def front_bigger_than_back?
-		
 		my_logger.info "front_bigger_than_back? called"
 		return unique_value(@arrangement[FRONT_HAND][:value], @arrangement[FRONT_HAND][:cards]) >
 					 unique_value(@arrangement[BACK_HAND][:value],  @arrangement[BACK_HAND][:cards][0..2])
-		
 	end
-	
 	
 	def evaluate_subhand(index)
 		

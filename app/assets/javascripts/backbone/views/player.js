@@ -11,11 +11,15 @@ app.PlayerView = Backbone.View.extend({
 			escape: 		 /\<\@\-(.+?)\@\>/gim
 		};
 		this.template= _.template($('#opponent_template').html());
+		this.handView= new app.SortedSubHandView({
+			model: this.model
+		});
 	},
 
 	render: function(){
 		var val = this.model.toJSON();
 		this.$el.html( this.template(val));
+		this.$el.append(this.handView.render().$el);
 		return this;
 	}
 	

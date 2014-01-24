@@ -16,14 +16,23 @@ app.SortButtonsView = Backbone.View.extend({
 	},
 	
 	sortByVal: function(){
+		if(app.status() < DEALING || app.status() > ALMOST_SHOWDOWN){
+			return;
+		}
 		app.pubSub.trigger("sortByVal");
 	},
 	
 	sortBySuit: function(){
+		if(app.status() < DEALING || app.status() > ALMOST_SHOWDOWN){
+			return;
+		}
 		app.pubSub.trigger("sortBySuit");
 	},
 	
 	swapCards: function(){
+		if(app.status() < DEALING || app.status() > ALMOST_SHOWDOWN){
+			return;
+		}
 		app.pubSub.trigger("swapCards");
 	}
 	

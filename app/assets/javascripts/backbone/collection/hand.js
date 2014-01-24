@@ -5,13 +5,7 @@ app.Hand = Backbone.Collection.extend({
 	sortMethod: "value",
 	
 	initialize: function(){
-		this.url=$('#table').data('table_id')+'/protagonist_cards';
-		this.fetch();
-		//console.log("cards collection initialized");
-		_.bindAll(this, 'sortByVal', 'sortBySuit', 'recalcHands');
-		this.listenTo(app.pubSub, "sortByVal", this.sortByVal);
-		this.listenTo(app.pubSub, "sortBySuit", this.sortBySuit);
-		this.listenTo(app.pubSub, "protagonistHandRendered", this.recalcHands);
+		_.bindAll(this, 'sortByVal', 'sortBySuit');
 	},
 	
 	sortByVal: function(){
@@ -37,31 +31,6 @@ app.Hand = Backbone.Collection.extend({
 		}
 	},
 	
-	recalcHands: function(){
-		var descriptions= ["Invalid", "Invalid", "Invalid"];
-		for(i=0; i<3; i++){
-			if(this.handNumbersValid(i)){
-				descriptions[i] = this.evaluateSubhand(i)["humanName"];
-			}
-		}
-		app.pubSub.trigger("protagonistHandDescriptionsUpdated",  descriptions);
-	},
-	
-	postHand: function(){
-		result = [[], [], []];
-		_.each(this.models, function(card){
-			result[card.get("row")].push(card.get("val"));
-		});
-		console.log(JSON.stringify(result));
-		$.ajax({
-			type: "POST",
-			url: $('#table').data('table_id')+"/post_protagonist_cards", 
-			dataType: "json",
-			data: JSON.stringify({arrangement: result}), 
-			contentType: 'application/json'
-		});
-	},
-	
 	partitionSubhands: function(){
 		
 		result = [[], [], []];
@@ -69,36 +38,6 @@ app.Hand = Backbone.Collection.extend({
 			result[card.get("row")].push(card);
 		});
 		return result;
-	},
-	
-	handNumbersValid: function(whichHand){
-	
-		var positions = [0, 0, 0];
-		
-		_.each(this.models, function(card){
-			positions[card.get('row')]++;
-		});
-		
-		if(typeof whichHand === "undefined"){
-			if(this.partitionSubhands().join(',') === [3, 5, 5].join(',')){
-				return true;
-			}
-			return false;
-		}
-		if(positions[whichHand] !== [3, 5, 5][whichHand]){
-			return false;
-		}
-		return true;
-	},
-	
-	handValid: function(){
-		if(!this.handNumbersValid()){
-			return false;
-		}
-		if(this.handValue(FRONT_HAND) > this.handValue(BACK_HAND)){
-			return false;
-		}
-		return true;
 	},
 	
 	evaluateSubhand: function(whichHand){

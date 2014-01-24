@@ -1,15 +1,22 @@
 var app = app || {};
 
-app.HandView = Backbone.View.extend({
+app.ProtagonistHandView = Backbone.View.extend({
 	el: '#protagonist_cards',
 	initialize: function(){
 		var col = new app.Hand();
+		col.url=$('#table').data('table_id')+'/protagonist_cards';
+		col.fetch();
 		this.collection= col;
 
-		_.bindAll(this, 'render');
+		_.bindAll(this, 'render', 'recalcHands');
 		//this.listenTo(col, "all", this.eventTracker);
 		this.listenTo(col, "sort", this.sorted);
 		this.listenTo(app.pubSub, "blankClicked", this.blankClicked);
+		this.listenTo(app.pubSub, "handDealt", this.handDealt);
+		this.listenTo(app.pubSub, "sortByVal", this.collection.sortByVal);
+		this.listenTo(app.pubSub, "sortBySuit", this.collection.sortBySuit);
+		this.listenTo(app.pubSub, "protagonistHandRendered", this.recalcHands);
+		this.listenTo(app.pubSub, "gatherHands", this.postHand);
 	},
 
 	eventTracker: function(arg1, arg2){
@@ -32,6 +39,11 @@ app.HandView = Backbone.View.extend({
 	},
 	
 	blankClicked: function(row, position){
+	
+		if(app.status() < DEALING || app.status() > ALMOST_SHOWDOWN){
+			return;
+		}
+	
 		var blanks = [position].concat(_.without([0, 1, 2, 3, 4, 5, 6, 7], position));
 		var toMove=[];
 		
@@ -107,6 +119,20 @@ app.HandView = Backbone.View.extend({
 		return this;
 	},
 	
+	postHand: function(){
+		result = [[], [], []];
+		_.each(this.collection.models, function(card){
+			result[card.get("row")].push(card.get("val"));
+		});
+		$.ajax({
+			type: "POST",
+			url: $('#table').data('table_id')+"/post_protagonist_cards", 
+			dataType: "json",
+			data: JSON.stringify({arrangement: result}), 
+			contentType: 'application/json'
+		});
+	},
+	
 	renderCard: function(card){
 		var cardView=new app.CardView({
 			model:card,
@@ -114,5 +140,50 @@ app.HandView = Backbone.View.extend({
 		this.$el.prepend(cardView.render().$el);
 	},
 	
+	handDealt: function(cards){
+		this.collection.reset(cards.cards);
+		this.collection.sort();
+	},
+	
+	recalcHands: function(){
+		var descriptions= ["Invalid", "Invalid", "Invalid"];
+		for(i=0; i<3; i++){
+			if(this.handNumbersValid(i)){
+				descriptions[i] = this.collection.evaluateSubhand(i)["humanName"];
+			}
+		}
+		app.pubSub.trigger("protagonistHandDescriptionsUpdated",  descriptions);
+	},
+	
+	handNumbersValid: function(whichHand){
+	
+		var positions = [0, 0, 0];
+		
+		_.each(this.collection.models, function(card){
+			positions[card.get('row')]++;
+		});
+		
+		if(typeof whichHand === "undefined"){
+			if(this.collection.partitionSubhands().join(',') === [3, 5, 5].join(',')){
+				return true;
+			}
+			return false;
+		}
+		if(positions[whichHand] !== [3, 5, 5][whichHand]){
+			return false;
+		}
+		return true;
+	},
+	
+	handValid: function(){
+		if(!this.handNumbersValid()){
+			return false;
+		}
+		if(this.collection.evaluateSubhand(FRONT_HAND)["uniqueValue"] > this.collection.evaluateSubhand(BACK_HAND)["uniqueValue"]){
+			return false;
+		}
+		return true;
+	},
+
 	
 });

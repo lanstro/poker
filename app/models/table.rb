@@ -21,21 +21,18 @@ class Table
 	FOLDERS_NOTIFICATION = 6
 	SHOWING_DOWN_FRONT_NOTIFICATION = 7
 	FRONT_HAND_WINNER_ANNOUNCE = 8
-	FRONT_HAND_YOU_ANNOUNCE = 9
-	FRONT_HAND_SUGAR = 10
-	SHOWING_DOWN_MID_NOTIFICATION = 11
-	MID_HAND_WINNER_ANNOUNCE = 12
-	MID_HAND_YOU_ANNOUNCE = 13
-	MID_HAND_SUGAR = 14
-	SHOWING_DOWN_BACK_NOTIFICATION = 15
-	BACK_HAND_WINNER_ANNOUNCE = 16
-	BACK_HAND_YOU_ANNOUNCE = 17
-	BACK_HAND_SUGAR = 18
-	OVERALL_SUGAR = 19
-	OVERALL_GAINS_LOSSES = 20
+	FRONT_HAND_SUGAR = 9
+	SHOWING_DOWN_MID_NOTIFICATION = 10
+	MID_HAND_WINNER_ANNOUNCE = 11
+	MID_HAND_SUGAR = 12
+	SHOWING_DOWN_BACK_NOTIFICATION = 13
+	BACK_HAND_WINNER_ANNOUNCE = 14
+	BACK_HAND_SUGAR = 15
+	OVERALL_SUGAR = 16
+	OVERALL_GAINS_LOSSES = 17
 						 
-	NOTIFICATIONS_DELAY      = [4, 2,45, 10,  2, 2, 3, 2, 10, 3, 3, 2, 10, 3, 3, 2, 10, 3, 3, 3, 5]
-	NOTIFICATIONS_DELAY_TEST = [2, 2, 2,  2,  2, 3, 2, 3,  3, 3, 2, 3,  3, 3, 2, 3,  3, 3, 3, 3]
+	NOTIFICATIONS_DELAY      = [4, 2,45, 10,  4, 2, 4, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3, 5]
+	NOTIFICATIONS_DELAY_TEST = [4, 2, 2,  2,  4, 3, 2, 3,  3, 3, 2, 3,  3, 3, 2,  3, 3, 3]
 	
 	@@tables = []
 	@@count = 0
@@ -57,7 +54,7 @@ class Table
 		@results = {}
 		@min_table_balance = 3 * (seats +1 )* @stakes
 		
-		@status = 0
+		@status = STATUS_RESET
 		@scheduler = Rufus::Scheduler.new
 		@current_job = nil
 		@current_message = ""
@@ -70,7 +67,7 @@ class Table
 			fill_seats_with_AIs
 		end
 		
-		driver WAITING_TO_START
+		driver
   end
 	
 	# housekeeping
@@ -112,99 +109,114 @@ class Table
 	
 	#scheduler
 	
-	def driver(new_status)
-		my_logger.info "driver called with new_status of "+new_status.to_s
-		if (new_status == INVALIDS_NOTIFICATION and invalid_hands?.size == 0 ) or
-			 (new_status == FOLDERS_NOTIFICATION and folders?.size==0) or
-			 (new_status == FRONT_HAND_SUGAR and !sugar_payable? FRONT_HAND) or
-			 (new_status == MID_HAND_SUGAR and !sugar_payable? MID_HAND) or
-			 (new_status == BACK_HAND_SUGAR and !sugar_payable? BACK_HAND) or
-			 (new_status == OVERALL_SUGAR and !sugar_payable? OVERALL_SUGAR_INDEX) or
-			 new_status== FRONT_HAND_YOU_ANNOUNCE or
-			 new_status== MID_HAND_YOU_ANNOUNCE or
-			 new_status== BACK_HAND_YOU_ANNOUNCE
-			if new_status >= OVERALL_GAINS_LOSSES
-				driver(WAITING_TO_START)
-			else
-				driver(new_status+1)
-			end
+	def driver
+		if (@status == INVALIDS_NOTIFICATION and invalid_hands?.size == 0 ) or
+			 (@status == FOLDERS_NOTIFICATION and folders?.size==0) or
+			 (@status == FRONT_HAND_SUGAR and !sugar_payable? FRONT_HAND) or
+			 (@status == MID_HAND_SUGAR and !sugar_payable? MID_HAND) or
+			 (@status == BACK_HAND_SUGAR and !sugar_payable? BACK_HAND) or
+			 (@status == OVERALL_SUGAR and !sugar_payable? OVERALL_SUGAR_INDEX)
+			@status += 1
+			driver
 			return
 		end
-		@current_job = @scheduler.in (NOTIFICATIONS_DELAY_TEST[new_status-1]).to_s+'s', :job => true do
-			@status=new_status
-			case new_status
-				when WAITING_TO_START
-					broadcast_notification "The next hand will begin soon..."
-				when DEALING
-					if enough_players?
-						broadcast_notification "Dealing a fresh hand. Good luck!"
-						deal
-					else
-						broadcast_notification "There are not enough active players to deal a hand. Waiting..."
-						new_status = STATUS_RESET
-					end
-				when WAITING_FOR_CARD_SORTING
-					broadcast_notification "Waiting for players to sort hands..."
-					#broadcast timer for all clients
-				when ALMOST_SHOWDOWN
-					broadcast_notification "Almost the showdown..."
-				when SHOWDOWN_NOTIFICATION
-					broadcast_notification "Ok, time for the showdown!"
-				when INVALIDS_NOTIFICATION
-					broadcast_notification deal_with_invalids
-				when FOLDERS_NOTIFICATION
-					broadcast_notification deal_with_folders
-					if players_in_hand < 2
-						new_status = STATUS_RESET
-					end
-				when SHOWING_DOWN_FRONT_NOTIFICATION
-					broadcast_notification "First, show the three front cards. Highest hand wins."
-				when FRONT_HAND_WINNER_ANNOUNCE
-					showdown(FRONT_HAND)
-					broadcast_notification "Front hand shown down. See message log for details."
-				when FRONT_HAND_SUGAR
-					if sugar_payable? FRONT_HAND
-						message = payout_sugar(FRONT_HAND)
-					end
-					broadcast_notification message
-				when SHOWING_DOWN_MID_NOTIFICATION
-					broadcast_notification "Next, show the middle five cards. Lowest hand wins."
-				when MID_HAND_WINNER_ANNOUNCE
-					showdown(MID_HAND)
-					broadcast_notification "Mid hand shown down. See message log for details."
-				when MID_HAND_SUGAR
-					if 
-						message = payout_sugar(MID_HAND)
-					end
-					broadcast_notification message
-				when SHOWING_DOWN_BACK_NOTIFICATION
-					broadcast_notification "Next, show the back five cards. Highest hand wins."
-				when BACK_HAND_WINNER_ANNOUNCE
-					showdown(BACK_HAND)
-					broadcast_notification "Back hand shown down. See message log for details."
-				when BACK_HAND_SUGAR
-					if sugar_payable? BACK_HAND
-						message = payout_sugar(BACK_HAND)
-					end
-					broadcast_notification message
-				when OVERALL_SUGAR
-					if sugar_payable? OVERALL_SUGAR_INDEX
-						message = payout_sugar(BACK_HAND)
-					end
-					broadcast_notification message
-				when OVERALL_GAINS_LOSSES
-					broadcast_notification "Summary of your gains and losses this hand..."
-					# show everyone their balances
-					new_status=STATUS_RESET
-			end
-			driver(new_status+1)
+		
+		if @status > OVERALL_GAINS_LOSSES
+			@status = WAITING_TO_START
+			driver
+			return
 		end
+	
+		case @status
+			when WAITING_TO_START
+				broadcast_notification "The next hand will begin soon..."
+			when DEALING
+				if enough_players?
+					deal
+					broadcast_notification "New hand dealt. Good luck!"
+					custom_notification "cards"
+				else
+					broadcast_notification "There are not enough active players to deal a hand. Waiting..."
+					@status = STATUS_RESET
+				end
+			when WAITING_FOR_CARD_SORTING
+				broadcast_notification "Waiting for players to sort hands..."
+				#broadcast timer for all clients
+			when ALMOST_SHOWDOWN
+				broadcast_notification "Almost the showdown..."
+			when SHOWDOWN_NOTIFICATION
+				broadcast_notification "Ok, time for the showdown!"
+				gather_arrangements
+			when INVALIDS_NOTIFICATION
+				custom_notification "arrangements"
+				broadcast_notification deal_with_invalids
+			when FOLDERS_NOTIFICATION
+				broadcast_notification deal_with_folders
+				if players_in_hand.size < 2
+					@status = STATUS_RESET
+				end
+			when SHOWING_DOWN_FRONT_NOTIFICATION
+				broadcast_notification "First, show the three front cards. Highest hand wins."
+			when FRONT_HAND_WINNER_ANNOUNCE
+				showdown(FRONT_HAND)
+				showdown(MID_HAND)
+				showdown(BACK_HAND)
+				broadcast_notification "Front hand shown down. See message log for details."
+			when FRONT_HAND_SUGAR
+				message = payout_sugar(FRONT_HAND)
+				broadcast_notification message
+			when SHOWING_DOWN_MID_NOTIFICATION
+				broadcast_notification "Next, show the middle five cards. Lowest hand wins."
+			when MID_HAND_WINNER_ANNOUNCE
+				broadcast_notification "Mid hand shown down. See message log for details."
+			when MID_HAND_SUGAR
+				message = payout_sugar(MID_HAND)
+				broadcast_notification message
+			when SHOWING_DOWN_BACK_NOTIFICATION
+				broadcast_notification "Next, show the back five cards. Highest hand wins."
+			when BACK_HAND_WINNER_ANNOUNCE
+				broadcast_notification "Back hand shown down. See message log for details."
+			when BACK_HAND_SUGAR
+				message = payout_sugar(BACK_HAND)
+				broadcast_notification message
+			when OVERALL_SUGAR
+				message = payout_sugar(OVERALL_SUGAR_INDEX)
+				broadcast_notification message
+			when OVERALL_GAINS_LOSSES
+				broadcast_notification "Summary of your gains and losses this hand..."
+				# show everyone their balances
+				@status=STATUS_RESET
+		end
+	
+		@current_job = @scheduler.in (NOTIFICATIONS_DELAY_TEST[@status]).to_s+'s', :job => true do
+			@status+=1
+			driver
+		end
+		
+		
 	end
 	
 	def broadcast_notification(msg)
 		@current_message = msg
-		result = { :user => "dealer", :status => @status, :broadcast => @current_message }
+		result = { user: "dealer", status: @status, broadcast: @current_message }
 		WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:table_announcement, result)
+	end
+	
+	def custom_notification(type)
+		case type
+			when "cards"
+				human_players_in_hand.each do |player|
+					# make separate secure channel
+					WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:hand_dealt, {cards: player.hand.cards})
+				end
+			when "arrangements"
+				result = {}
+				players_in_hand.each do |player|
+					result[player] = player.hand.arrangement
+				end
+				WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:arrangements, result)
+		end
+	
 	end
 	
 	# actual play
@@ -233,6 +245,19 @@ class Table
 		return temp
 	end
 	
+	def human_players_in_hand
+		return players_in_hand.keep_if do |player|
+			player.human?
+		end
+	end
+	
+
+	def players_at_showdown
+		return players_in_hand.keep_if do |player|
+			!player.folded
+		end
+	end
+	
 	def players_in_next_hand
 		temp = @players.dup
 		temp.keep_if do |player|
@@ -246,7 +271,6 @@ class Table
 		temp.keep_if do |player|
 			!player.hand.hand_valid
 		end
-		my_logger.info "invalid_hands? returning "+temp.inspect
 		return temp
 	end
 	
@@ -259,17 +283,12 @@ class Table
 	end
 	
 	def deal
+		@results = {}
 		@cards.shuffle!
 		index=0
 		players_in_hand.cycle(13) do |player|
 			player.dealt_card(@cards[index])
 			index+=1
-		end
-		players_in_hand.each do |player|
-			if player.is_AI?
-				player.hand.auto_arrange
-				player.hand.evaluate_all_subhands
-			end
 		end
 	end
 	
@@ -284,7 +303,7 @@ class Table
 			invalids.each(&:muck)
 			message = invalids.map(&:name).to_sentence
 			if invalids.length == 1
-				message = " had an invalid hand, and is treated as having folded."
+				message += " had an invalid hand, and is treated as having folded."
 			else
 				message += " had invalid hands, and are treated as having folded."
 			end
@@ -304,6 +323,8 @@ class Table
 		if payees
 			if players_in_hand.size == 1
 				message = players_in_hand.first.name+" is the only player who has not folded. Each player who folded pays $"+(2*@stakes).to_s+"."
+			elsif payees.size == 1
+				message = payees.first.name + " has folded, and must pay $"+(2*@stakes).to_s+" to each remaining player."
 			else
 				message = payees.map(&:name).to_sentence+" have folded, and must pay $"+(2*@stakes).to_s+" to each remaining player."
 			end
@@ -312,12 +333,18 @@ class Table
 		return message
 	end
 	
+	def gather_arrangements
+		human_players_in_hand.each do |player|
+			# make separate secure channel
+			WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:gather_hands, {})
+		end
+	end
+	
+	
 	def showdown(index)
 	
-		ranks = players_in_hand
+		ranks = players_at_showdown
 	
-		# probably not required as hands already evaluated in validation stage - consider deleting later
-		
 		ranks.sort_by! { |a| a.hand.arrangement[index][:unique_value] }
 		
 		if index==MID_HAND and MID_IS_LO
@@ -354,22 +381,30 @@ class Table
 		return result
 	end
 	
-	def sugar_payable?(index)
-		if(index == OVERALL_SUGAR_INDEX)
-		
-			winners= {}
-			max = 0
-			3.times do |n|
-				if @results[n][1].size == 1  #if outright winner
-					winners[@results[n][1].first]+=1
-					if winners[@results[n][1].first] > max
-						max = winners[@results[n][1].first]
-					end
+	def overall_sugar_outcome
+		winners= Hash.new(0)
+		max, sugars = 0, 0
+		winner = nil
+		3.times do |n|
+			if @results[n][1].size == 1  #if outright winner
+				winners[@results[n][1].first]+=1
+				if winners[@results[n][1].first] > max
+					max = winners[@results[n][1].first]
+					winner = @results[n][1].first
 				end
+				sugars = [nil, nil, 1, 3][max]
 			end
-			if max > 1
+		end
+		return {max: max, sugars: sugars, winner: winner}
+	end
+	
+	def sugar_payable?(index)
+		if index == OVERALL_SUGAR_INDEX
+			if overall_sugar_outcome[:max] > 1
+				WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:table_announcement, {broadcast: "true returned"})
 				return true
 			else
+				WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:table_announcement, {broadcast: "false returned"})
 				return false
 			end
 		end
@@ -401,29 +436,21 @@ class Table
 	
 	def payout_sugar(which_hand)
 		
-		winner = nil
-		sugars = nil
+		winner, sugars = nil, nil
 		
-		if(which_hand < OVERALL_SUGAR_INDEX)
+		if(which_hand != OVERALL_SUGAR_INDEX)
 			winner = @results[which_hand][1].first
 			sugars = 1
+			message = "for making "+winner.hand.arrangement[which_hand][:human_name]
 		else
-			winners= {}
-			max = 0
-			3.times do |n|
-				if @results[n][1].size == 1  #if outright winner
-					winners[@results[n][1].first]+=1
-					if winners[@results[n][1].first] > max
-						max = winners[@results[n][1].first]
-						winner = winners[@results[n][1]]
-					end
-					sugars = [nil, nil, 1, 3][max]
-				end
-			end
+			result = overall_sugar_outcome
+			winner = result[:winner]
+			sugars = result[:sugars]
+			max = result[:max]
+			message = "for winning "+max.to_s+" of the 3 hands this round"
 		end
-		
 		if winner
-			players=players_in_hand - folders?
+			players=players_at_showdown
 			players.each do |player|
 				if player == winner
 					player.change_balance(@stakes * (players.size-1) * sugars)
@@ -431,20 +458,9 @@ class Table
 					player.change_balance(-@stakes * sugars)
 				end
 			end
-			message = player.name+" is paid a bonus $"+@stakes.to_s+" by every player in the hand."
-			return message
 		end
-	end
-	
-	def test (index=0)
-		muck
-		deal
-		showdown index
-		payout_hand index
-		if sugar_payable?(index)
-			payout_sugar index
-		end
-		return nil
+		message = winner.name+" is paid a bonus $"+(@stakes*sugars).to_s+" by every player in the hand "+message
+		return message
 	end
 	
 	def persisted?
@@ -458,7 +474,14 @@ class Table
 		if user
 			players_info.delete_if { |a| a.user == user }
 		end
-		return players_info.map(&:external_info)
+		if @status < INVALIDS_NOTIFICATION
+			cards_public=false
+		else
+			cards_public=true
+		end
+		temp= players_info.map do |player|
+			player.external_info(cards_public)
+		end
 	end
 	
 	def protagonist_cards(user)
@@ -470,8 +493,11 @@ class Table
 	end
 	
 	def post_protagonist_cards(user, arrangement)
+		# should check whether arrangement is valid format
+		
 		# check that arrangement matches user's cards
 		player, card_vals = nil, nil
+		
 		@players.each do |p|
 			if p.user == user
 				card_vals=p.hand.cards.map do |card|
@@ -483,7 +509,7 @@ class Table
 		
 		if card_vals.sort != arrangement.flatten.sort
 			# dedicate a separate log file?
-			logger.info user.name+" is a CHEATER"
+			broadcast_notification player.name+" is a CHEATER: submitted cards do not match up with server side cards"
 			return "Cheater"
 		end
 

@@ -6,11 +6,12 @@ app.OpponentsView = Backbone.View.extend({
 	initialize: function(){
 		var col = new app.Opponents();
 		this.collection= col;
+		this.subViews = [];
 		
-		_.bindAll(this, 'render', 'firstTime');
-		
+		_.bindAll(this, 'render');
 		
 		this.listenToOnce(col, "sync", this.firstTime);
+		this.render();
 		//this.listenTo(col, "all", this.eventTracker);
 		
 	},
@@ -45,6 +46,7 @@ app.OpponentsView = Backbone.View.extend({
 	
 	render: function(){
 		this.$el.empty();
+		this.subViews = [];
 		this.collection.each(function(player){
 			this.renderOpponent(player);
 		}, this);
@@ -55,6 +57,7 @@ app.OpponentsView = Backbone.View.extend({
 		var playerView=new app.PlayerView({
 			model:player,
 		});
+		this.subViews.push(playerView);
 		this.$el.append(playerView.render().$el);
 	}
 });
