@@ -16,7 +16,8 @@ app.ProtagonistHandView = Backbone.View.extend({
 		this.listenTo(app.pubSub, "sortByVal", this.collection.sortByVal);
 		this.listenTo(app.pubSub, "sortBySuit", this.collection.sortBySuit);
 		this.listenTo(app.pubSub, "protagonistHandRendered", this.recalcHands);
-		this.listenTo(app.pubSub, "gatherHands", this.postHand);
+		this.listenTo(app.pubSub, "statusChanged", this.statusChanged);
+		this.listenTo(app.pubSub, "swapCards", this.swapCards);
 	},
 
 	eventTracker: function(arg1, arg2){
@@ -87,13 +88,56 @@ app.ProtagonistHandView = Backbone.View.extend({
 		
 		this.render();
 	},
+
+	statusChanged: function(newStatus){
+		switch (newStatus){
+			case DEALING:
+			case FOLDERS_NOTIFICATION:
+			case SHOWING_DOWN_FRONT_NOTIFICATION:
+			case SHOWING_DOWN_MID_NOTIFICATION:
+			case SHOWING_DOWN_BACK_NOTIFICATION:
+			case OVERALL_SUGAR:
+			case OVERALL_GAINS_LOSSES:
+				this.render();
+				break;
+		}
+		if (newStatus === SHOWDOWN_NOTIFICATION){
+			this.postHand();
+		}
+	},
 	
 	render: function(){
-	
+		if(this.collection.models.length === 0){
+			return;
+		}
+		var status = app.status();
 		this.$el.empty();
+		
+		if(status < DEALING || status > BACK_HAND_SUGAR){
+			this.renderRow([false, false, false]);
+		}
+		else if(status >= DEALING && status <= FOLDERS_NOTIFICATION){
+			this.renderRow([true, true, true]);
+		}
+		else if(status >= SHOWING_DOWN_FRONT_NOTIFICATION && status <= FRONT_HAND_SUGAR){
+			this.renderRow([true, false, false]);
+		}
+		else if(status >= SHOWING_DOWN_MID_NOTIFICATION && status <= MID_HAND_SUGAR){
+			this.renderRow([false, true, false]);
+		}		
+		else if(status >= SHOWING_DOWN_BACK_NOTIFICATION && status <= BACK_HAND_SUGAR){
+			this.renderRow([false, false, true]);
+		}
+		app.pubSub.trigger("protagonistHandRendered");
+		return this;
+	},
+	
+	
+	renderRow: function(whichRows){
+
 		for(var row = 2; row >= 0 ; row--){
 			var cardsInRow = this.collection.models.filter(function(card){
-				if(card.get('row') === row){
+				if(whichRows[row] && card.get('row') === row){
 					return true;
 				}
 			});
@@ -115,8 +159,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 				}
 			}
 		}
-		app.pubSub.trigger("protagonistHandRendered");
-		return this;
+	
 	},
 	
 	postHand: function(){
@@ -138,6 +181,22 @@ app.ProtagonistHandView = Backbone.View.extend({
 			model:card,
 		});
 		this.$el.prepend(cardView.render().$el);
+	},
+	
+	switchCards: function(a, b){
+		var aPosition = a.get('position'),
+				bPosition = b.get('position'),
+				aRow      = a.get('row'),
+				bRow      = b.get('row');
+		a.set({ position: bPosition, row: bRow });
+		b.set({ position: aPosition, row: aRow });
+	}
+	
+	swapCards: function(){
+	
+		console.log("swapCards called");
+
+		this.render();
 	},
 	
 	handDealt: function(cards){

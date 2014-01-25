@@ -146,9 +146,7 @@ class Table
 				broadcast_notification "Almost the showdown..."
 			when SHOWDOWN_NOTIFICATION
 				broadcast_notification "Ok, time for the showdown!"
-				gather_arrangements
 			when INVALIDS_NOTIFICATION
-				custom_notification "arrangements"
 				broadcast_notification deal_with_invalids
 			when FOLDERS_NOTIFICATION
 				broadcast_notification deal_with_folders
@@ -188,7 +186,7 @@ class Table
 				@status=STATUS_RESET
 		end
 	
-		@current_job = @scheduler.in (NOTIFICATIONS_DELAY_TEST[@status]).to_s+'s', :job => true do
+		@current_job = @scheduler.in (NOTIFICATIONS_DELAY[@status]).to_s+'s', :job => true do
 			@status+=1
 			driver
 		end
@@ -209,12 +207,6 @@ class Table
 					# make separate secure channel
 					WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:hand_dealt, {cards: player.hand.cards})
 				end
-			when "arrangements"
-				result = {}
-				players_in_hand.each do |player|
-					result[player] = player.hand.arrangement
-				end
-				WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:arrangements, result)
 		end
 	
 	end
@@ -332,14 +324,6 @@ class Table
 		end
 		return message
 	end
-	
-	def gather_arrangements
-		human_players_in_hand.each do |player|
-			# make separate secure channel
-			WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:gather_hands, {})
-		end
-	end
-	
 	
 	def showdown(index)
 	

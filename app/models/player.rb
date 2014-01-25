@@ -74,7 +74,7 @@ class Player
 					  avatar: 				 @avatar,
 						balance: 				 @balance, 
 						in_current_hand: @in_current_hand, 
-						sittin_out: 		 @sittin_out, 
+						sitting_out: 		 @sitting_out, 
 						is_AI: 					 @is_AI,
 						arrangement:		 arrangement}
 	end

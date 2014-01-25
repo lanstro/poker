@@ -11,22 +11,17 @@ app.OpponentsView = Backbone.View.extend({
 		_.bindAll(this, 'render');
 		
 		this.listenToOnce(col, "sync", this.firstTime);
-		this.render();
-		//this.listenTo(col, "all", this.eventTracker);
 		
+		//this.listenTo(col, "all", this.eventTracker);
+		this.listenTo(app.pubSub, "arrangements", this.updateCollection);
 	},
 	
 	firstTime: function(arg){
-		this.listenTo(this.collection, 'change', this.changed);
 		this.render();
 	},
 	
-	changed: function(arg){
-		console.log("changed");
-	},
-	
 	eventTracker: function(arg1, arg2){
-		console.log("hand view's 'all' event called");
+		console.log("opponent view's 'all' event called");
 		console.log("event was: "+arg1);
 		if(arg2){
 			var cache=[];
@@ -55,9 +50,14 @@ app.OpponentsView = Backbone.View.extend({
 	
 	renderOpponent: function(player){
 		var playerView=new app.PlayerView({
-			model:player,
+			model: player,
 		});
 		this.subViews.push(playerView);
 		this.$el.append(playerView.render().$el);
+	},
+	
+	updateCollection: function(){
+		this.collection.fetch({update: true});
 	}
+	
 });

@@ -1,14 +1,6 @@
 var app = app || {};
 
 app.Card = Backbone.Model.extend ({
-	toggleHighlighted: function(){
-		if(this.get('highlighted')){
-			this.set('highlighted', false);
-		}
-		else{
-			this.set('highlighted', true);
-		}
-	},
 
 	valueComputed: function(loHand){
 		loHand = (typeof loHand === "undefined") ? false : loHand;

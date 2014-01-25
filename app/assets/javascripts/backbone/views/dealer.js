@@ -9,6 +9,7 @@ app.DealerView = Backbone.View.extend({
 		
 		_.bindAll(this, 'receivedBroadcast');
 		this.listenTo(this.model, "all", this.watchBroadcast);
+		this.listenToOnce(this.model, "sync", this.broadcastStatusChange);
 		this.setupDispatcher();
 	},
 	
@@ -30,32 +31,30 @@ app.DealerView = Backbone.View.extend({
 		app.dispatcher.bind('client_send_message', this.receivedChat);
 		app.dispatcher.bind('table_announcement', this.receivedBroadcast);
 		app.dispatcher.bind('hand_dealt', this.handDealt);
-		app.dispatcher.bind('gather_hands', this.gatherHands);
-		app.dispatcher.bind('arrangements', this.receivedArrangements);
 	},
 	
 	receivedChat: function(data){
 		app.pubSub.trigger("messageReceived", data);
 	},
 	
+	broadcastStatusChange: function(){
+		app.pubSub.trigger("statusChanged",this.model.get("status"));
+	},
+	
 	receivedBroadcast: function(data){
+		var oldStatus = this.model.get("status");
 		this.model.set({status: data.status, broadcast: data.broadcast});
 	  app.pubSub.trigger("messageReceived", data);
-		app.pubSub.trigger("statusChanged", data.status);
+		if (oldStatus !== data.status){
+			this.broadcastStatusChange(data.status);
+			if(oldStatus < INVALIDS_NOTIFICATION && data.status >= INVALIDS_NOTIFICATION){
+			  app.pubSub.trigger('arrangements');
+			}
+		}
 	},
 	
 	handDealt: function(cards){
-		console.log("broadcast hand dealt");
 		app.pubSub.trigger('handDealt', cards);
 	},
-	
-	gatherHands: function(){
-		app.pubSub.trigger('gatherHands');
-	},
-	
-	receivedArrangements: function(data){
-		console.log("received card arrangements");
-		this.arrangement=data;
-	}
-	
+
 });

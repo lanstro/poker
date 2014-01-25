@@ -44,39 +44,48 @@
 		width:49%;
 		/*background-color:yellow;*/
 		display:inline-block;
-		margin:10px 1px;
 		float:left;
-		.table_avatar{
-			width:20%;
-			border:1px grey solid;
-		}
-		.player_info{
-			width:15%;
-			margin:5% 1%;
-		}
-		.player_info p{
-			padding:0px;
-			margin:0px;
-			font-size:0.8em;
-		}
+		margin: 1% 0%;
 		.opponent_cards {
+			width:40%;
 			max-width:40%;
-			margin: 3% 0%;
 		}
-		.opponent_cards .covered_cards{
-			max-width:100%;
+		.opponent_dashboard{
+			width:30%;
+			max-width:60%;
+			.table_avatar{
+				width:40%;
+				border:1px grey solid;
+			}
+			.player_info{
+				width:30%;
+				margin:2% 3%;
+			}
+			.player_info p{
+				padding:0px;
+				margin:0px;
+				font-size:0.8em;
+			}
 		}
 	}
 	.opponent:nth-child(even){
-		.table_avatar, .player_info, .opponent_cards{
+		.opponent_dashboard, .table_avatar, .player_info, .opponent_cards{
 			text-align:right;
 			float:right;
 		}
+		.opponent_cards .card{
+			float:right;
+			width:20%;
+		}
 	}
 	.opponent:nth-child(odd){
-		.table_avatar, .player_info, .opponent_cards{
+		.opponent_dashboard, .table_avatar, .player_info, .opponent_cards{
 			text-align:left;
 			float:left;
+		}
+		.opponent_cards .card{
+			float:left;
+			width:20%;
 		}
 	}
 	&:after{
@@ -94,7 +103,7 @@
 	height:24%;
 	width:20%;
 	left:40%;
-	top:14%;
+	top:7%;
 	text-align:center;
 	vertical-align:middle;
 }
@@ -109,7 +118,7 @@
 		width:50%;
 		/*background-color:red;*/
 		float:left;
-		.protagonist_card{
+		.card{
 			width:12%;
 			padding:0.25% 0.25%;
 			float:left;
@@ -117,10 +126,9 @@
 				box-shadow: 0px 0px 3px 0px red;
 			}
 		}
-		.protagonist_card img{
+		.card img{
 			width:100%;
 		}
-		
 	}
 	#protagonist_card_values{
 		position:absolute;
@@ -224,4 +232,3 @@
 		visibility: hidden;
 	}
 }
-

@@ -17,7 +17,6 @@ app.ChatView = Backbone.View.extend({
 	
 	addMessage: function(data){
 		var $log = $('#log');
-		console.log(JSON.stringify(data));
 		$log.val($log.val()+data.user+": "+data.broadcast+"\n");
 		while($log[0].scrollHeight > 3000){
 			var $str = $log.val();

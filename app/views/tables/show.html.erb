@@ -44,7 +44,13 @@
 	</div>
 
 	<script type="text/template" id="opponent_template">
-		
+		<div class = "opponent_dashboard">
+		</div>
+		<div class = "opponent_cards">
+		</div>
+	</script>
+	
+	<script type="text/template" id="opponent_dashboard_template">
 		<img class="table_avatar" alt: "avatar" src= <@= $.parseJSON('<%= small_avatar_file_paths.to_json %>'.replace(/&quot;/g, '"'))[avatar] @>  >
 		<div class="player_info">
 			<p><@= name @></p>

@@ -2,7 +2,7 @@ var app = app || {};
 
 app.CardView = Backbone.View.extend({
 	tag: 'div',
-	className: 'protagonist_card',
+	className: 'card',
 	initialize: function(){
 		_.templateSettings = {
 			interpolate: /\<\@\=(.+?)\@\>/gim,
@@ -18,7 +18,7 @@ app.CardView = Backbone.View.extend({
 	},
 	
 	isBlank: function(){
-		if(this.model.get("human_description") == "blank"){
+		if(this.model.get("human_description") === "blank"){
 			return true;
 		}
 		return false;
@@ -42,12 +42,21 @@ app.CardView = Backbone.View.extend({
 			}
 		}
 		else{
-			this.model.toggleHighlighted();
+			this.toggleHighlighted();
 		}
 	},
 	
 	swapPosition: function(otherCard){
 		
+	},
+	
+	toggleHighlighted: function(){
+		if(this.model.get('highlighted')){
+			this.model.set('highlighted', false);
+		}
+		else{
+			this.model.set('highlighted', true);
+		}
 	},
 
 	render: function(){
