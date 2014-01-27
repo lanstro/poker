@@ -19,5 +19,14 @@ module TablesHelper
 		end
 		return results
 	end
-
+	
+	def hand_ranking_icon_paths
+		paths = Dir.glob("app/assets/images/other/ranking_buttons/*.png")
+		results={}
+		paths.each do |a|
+			temp = File.basename(a, ".png")
+			results[temp]=image_path "other/ranking_buttons/"+temp+".png"
+		end
+		return results
+	end
 end

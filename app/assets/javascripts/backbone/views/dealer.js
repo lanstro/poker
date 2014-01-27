@@ -124,7 +124,7 @@ app.DealerView = Backbone.View.extend({
 				msg = "First, show the three front cards. Highest hand wins.";
 				break;
 			case FRONT_HAND_WINNER_ANNOUNCE:
-				msg = "Front hand shown down. "+this.winnerAnnounce(FRONT_HAND)+" See message log for further details";
+				msg = this.winnerAnnounce(FRONT_HAND)+" See message log for further details";
 				break;
 			case FRONT_HAND_SUGAR:
 				msg = this.sugarAnnounce(FRONT_HAND);
@@ -133,7 +133,7 @@ app.DealerView = Backbone.View.extend({
 				msg = "Next, show the middle five cards. Lowest hand wins.";
 				break;
 			case MID_HAND_WINNER_ANNOUNCE:
-				msg = "Mid hand shown down. "+this.winnerAnnounce(MID_HAND)+" See message log for further details";
+				msg = this.winnerAnnounce(MID_HAND)+" See message log for further details";
 				break;
 			case MID_HAND_SUGAR:
 				msg = this.sugarAnnounce(MID_HAND);
@@ -142,7 +142,7 @@ app.DealerView = Backbone.View.extend({
 				msg = "Next, show the back five cards. Highest hand wins.";
 				break;
 			case BACK_HAND_WINNER_ANNOUNCE:
-				msg = "Back hand shown down. "+this.winnerAnnounce(BACK_HAND)+" See message log for further details";
+				msg = this.winnerAnnounce(BACK_HAND)+" See message log for further details";
 				break;
 			case BACK_HAND_SUGAR:
 				msg = this.sugarAnnounce(BACK_HAND);
@@ -151,7 +151,7 @@ app.DealerView = Backbone.View.extend({
 				msg = this.sugarAnnounce(OVERALL_SUGAR_INDEX);
 				break;
 			case OVERALL_GAINS_LOSSES:
-				msg = "Hand completed.  Here's a summary of your gains and losses this hand...";
+				msg = "Round completed.  Here's a summary of your gains and losses...";
 				break;
 		}
 		return msg;
@@ -220,7 +220,7 @@ app.DealerView = Backbone.View.extend({
 			if( amount > 0){
 				winner = player.get("name");
 				if(whichHand < OVERALL_SUGAR_INDEX){
-					handDescription = " making "+player.get("arrangement")[whichHand]["human_name"]+" in the "+["front", "middle", "back"][whichHand];
+					handDescription = "making "+player.get("arrangement")[whichHand]["human_name"]+" in the "+["front", "middle", "back"][whichHand];
 				}
 			}
 			else if(amount < 0) {
@@ -229,10 +229,10 @@ app.DealerView = Backbone.View.extend({
 		});
 		if(whichHand === OVERALL_SUGAR_INDEX){
 			if( contribution == parseInt($("#table").data("table_stakes"))){
-				handDescription = " winning 2 out of 3 hands.";
+				handDescription = "winning 2 out of 3 hands.";
 			}
 			else{
-				handDescription = " absolutely dominating this round by winning all 3 hands!";
+				handDescription = "absolutely dominating this round by winning all 3 hands!";
 			}
 		}
 		return winner+" gets a bonus $"+contribution+" from each other player in the hand for "+handDescription;

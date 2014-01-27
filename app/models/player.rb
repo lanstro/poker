@@ -53,7 +53,6 @@ class Player
 	def change_balance(amount)
 		@balance+=amount
 		@current_hand_balance += amount
-		puts "player.rb message: "+@name+" had its balance changed by "+amount.to_s
 		if @balance < @table.min_table_balance
 			if @is_AI
 				@balance+=@table.min_table_balance

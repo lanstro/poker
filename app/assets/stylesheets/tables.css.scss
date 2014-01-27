@@ -64,7 +64,13 @@
 			.player_info p{
 				padding:0px;
 				margin:0px;
-				font-size:0.8em;
+				font-size:0.6em;
+			}
+			.green{
+				color:green;
+			}
+			.red{
+				color:red;
 			}
 		}
 	}
@@ -183,6 +189,8 @@
 				border:1px solid grey;
 				/*background-color:yellow;*/
 				cursor: text;
+				font-size: 1vw;
+				line-height:1.3vw;
 			}
 			#input{
 				width:100%;

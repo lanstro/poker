@@ -12,6 +12,7 @@ app.PlayerView = Backbone.View.extend({
 		};
 		
 		this.dashboardTemplate= _.template($('#opponent_dashboard_template').html());
+		this.buttonTemplate = _.template($('#hand_ranking_button_template').html());
 		
 		this.listenToOnce(app.pubSub, "statusChanged", this.render);
 		this.listenTo(app.pubSub, "statusChanged", this.statusChanged);
@@ -35,8 +36,12 @@ app.PlayerView = Backbone.View.extend({
 		switch (newStatus){
 			case WAITING_TO_START:
 			case FOLDERS_NOTIFICATION:
+			case SHOWING_DOWN_FRONT_NOTIFICATION:
+			case SHOWING_DOWN_MID_NOTIFICATION:
+			case SHOWING_DOWN_BACK_NOTIFICATION:
 			case BACK_HAND_SUGAR:
 			case OVERALL_SUGAR:
+			case OVERALL_GAINS_LOSSES:
 				this.renderDashboard(newStatus);
 				this.renderHand();
 				break;
@@ -49,10 +54,6 @@ app.PlayerView = Backbone.View.extend({
 				break;
 			case DEALING:
 			case INVALIDS_NOTIFICATION:
-			case SHOWING_DOWN_FRONT_NOTIFICATION:
-			case SHOWING_DOWN_MID_NOTIFICATION:
-			case SHOWING_DOWN_BACK_NOTIFICATION:
-			case OVERALL_GAINS_LOSSES:
 				this.renderHand();
 				break;
 		}
@@ -63,37 +64,53 @@ app.PlayerView = Backbone.View.extend({
 	
 	renderDashboard: function(status){
 		if(typeof status != 'undefined'){
+			var amount = 0;
 			switch (status){
 				case FOLDERS_NOTIFICATION:
-					this.model.set("balance", this.model.get("balance")+this.model.get("rankings")[FOLDERS_INDEX]["hand"]);
+					amount = this.model.get("rankings")[FOLDERS_INDEX]["hand"];
 					break;
 				case FRONT_HAND_WINNER_ANNOUNCE:
-					this.model.set("balance", this.model.get("balance")+this.model.get("rankings")[FRONT_HAND]["hand"]);
+					amount = this.model.get("rankings")[FRONT_HAND]["hand"];
 					break;
 				case FRONT_HAND_SUGAR:
-					this.model.set("balance", this.model.get("balance")+this.model.get("rankings")[FRONT_HAND]["sugars"]);
+					amount =  this.model.get("rankings")[FRONT_HAND]["sugars"];
 					break;
 				case MID_HAND_WINNER_ANNOUNCE:
-					this.model.set("balance", this.model.get("balance")+this.model.get("rankings")[MID_HAND]["hand"]);
+					amount =  this.model.get("rankings")[MID_HAND]["hand"];
 					break;
 				case MID_HAND_SUGAR:
-					this.model.set("balance", this.model.get("balance")+this.model.get("rankings")[MID_HAND]["sugars"]);
+					amount =  this.model.get("rankings")[MID_HAND]["sugars"];
 					break;
 				case BACK_HAND_WINNER_ANNOUNCE:
-					this.model.set("balance", this.model.get("balance")+this.model.get("rankings")[BACK_HAND]["hand"]);
+					amount =  this.model.get("rankings")[BACK_HAND]["hand"];
 					break;
 				case BACK_HAND_SUGAR:
-					this.model.set("balance", this.model.get("balance")+this.model.get("rankings")[BACK_HAND]["sugars"]);
+					amount =  this.model.get("rankings")[BACK_HAND]["sugars"];
 					break;
 				case OVERALL_SUGAR:
-					this.model.set("balance", this.model.get("balance")+this.model.get("rankings")[OVERALL_SUGAR_INDEX]["sugars"]);
+					amount =  this.model.get("rankings")[OVERALL_SUGAR_INDEX]["sugars"];
 					break;
 			}
 		}
-		console.log("playerView rendered at status "+app.status());
+		if(typeof amount != 'undefined' && amount != 0){
+			this.model.set("balance", this.model.get("balance")+amount);
+			if(amount > 0){
+				amount = "<p class='green'>(+$"+amount+")</p>";
+			}
+			else {
+				amount = "<p class='red'>(-$"+(-amount)+")</p>";
+			}
+		}
+		else {
+			amount = "";
+		}
 		this.$dashboard.empty();
-		this.$dashboard.html( this.dashboardTemplate(this.model.toJSON()));
-	
+		this.$dashboard.html( this.dashboardTemplate({
+			name: this.model.get("name"), 
+			balance: this.model.get("balance"), 
+			avatar: this.model.get("avatar"),
+			recentChange: amount
+		}));
 	},
 	
 	renderHand: function(){
