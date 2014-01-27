@@ -1,7 +1,7 @@
 class Player
 
-	attr_reader :is_AI, :user, :name, :avatar, :hand, :seat
-	attr_accessor :in_current_hand, :sitting_out, :folded, :current_hand_balance
+	attr_reader :is_AI, :user, :name, :avatar, :hand, :seat, :invalid
+	attr_accessor :in_current_hand, :sitting_out, :folded, :current_hand_balance, :rankings, :invalid
 
 	def initialize(player="AI", table=nil, balance=1000, seat=0, empty=false)
 	
@@ -24,11 +24,14 @@ class Player
 		@folded = false
 		@sitting_out = false
 		@current_hand_balance = 0
+		@rankings = [ {}, {}, {}, {}]
+		@invalid = false
 	end
 
 	def muck
 		@hand.muck
 		@folded = true
+		@rankings = [ {}, {}, {}, {}]
 	end
 	
 	def is_AI?
@@ -61,12 +64,18 @@ class Player
 		end
 	end
 	
+	def payout(what_type, which_hand)
+		change_balance(@rankings[which_hand][what_type])
+	end
+	
 	def external_info(cards_public)
 	
 		if cards_public
 			arrangement = @hand.arrangement
+			folded = @folded
 		else
 			arrangement = [ {}, {}, {}]
+			folded = false
 		end
 	
 		return {seat: 					 @seat,
@@ -76,7 +85,10 @@ class Player
 						in_current_hand: @in_current_hand, 
 						sitting_out: 		 @sitting_out, 
 						is_AI: 					 @is_AI,
-						arrangement:		 arrangement}
+						arrangement:		 arrangement,
+						rankings:        @rankings,
+						folded:          folded,
+						invalid:         @invalid}
 	end
 	
 end

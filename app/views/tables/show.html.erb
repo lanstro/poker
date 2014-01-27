@@ -13,7 +13,7 @@
 	<h1>Table <%= @table.id %></h1>
 	<h2><%= description %></h2>
 
-	<div id = "table" data-table_id=<%= @table.id %> data-uri="<%= request.host %>:<%= request.port %>/websocket" >
+	<div id = "table" data-table_id=<%= @table.id %> data-uri="<%= request.host %>:<%= request.port %>/websocket" data-table_stakes=<%= @table.stakes %>>
 		<div id="announcements">
 		</div>
 		<div id = "opponents">

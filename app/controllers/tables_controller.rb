@@ -44,7 +44,7 @@ class TablesController < ApplicationController
 	end
 	
 	def players_info
-		@player_info = Table.find_by_id(params[:id]).players_info(current_user)
+		@player_info = Table.find_by_id(params[:id]).players_info
 		respond_with @player_info
 	end
 	
@@ -64,9 +64,10 @@ class TablesController < ApplicationController
 	def status
 		@table = Table.find_by_id(params[:id])
 		respond_to do |format|
-			format.json { render :json => { :status => :ok, :status => @table.status, :broadcast => @table.current_message } }
+			format.json { render :json => { status: @table.status, next_showdown_time: @table.next_showdown_time } }
 		end
 	end
+	
 	
 	private
 	

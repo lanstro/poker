@@ -28,7 +28,6 @@ class Hand
 	end
 	
 	def hand_valid
-		# need to replace auto_arrange with real arrangement for human players
 		if !@arranged
 			auto_arrange
 		end
@@ -37,13 +36,10 @@ class Hand
 			 @arrangement[MID_HAND][:cards].size != 5 or
 			 @arrangement[BACK_HAND][:cards].size != 5 or
 			 @cards.size != 13
-			 my_logger.info "hand not valid"
 			return false
 		elsif front_bigger_than_back?
-			my_logger.info "hand not valid"
 			return false
 		end
-		my_logger.info "hand is valid"
 		return true
 	end
 	

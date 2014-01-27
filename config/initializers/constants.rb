@@ -2,6 +2,7 @@ TOP_UP_MAXIMUM = 2000
 FRONT_HAND = 0
 MID_HAND   = 1
 BACK_HAND   = 2
+FOLDERS_INDEX = 3
 OVERALL_SUGAR_INDEX = 3
 SUBHAND_NAMES = ["front", "middle", "back"]
 MID_IS_LO  = true

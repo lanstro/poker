@@ -11,6 +11,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 		_.bindAll(this, 'render', 'recalcHands');
 		//this.listenTo(col, "all", this.eventTracker);
 		this.listenTo(col, "sort", this.sorted);
+		this.listenToOnce(app.pubSub, 'statusChanged', this.render);
 		this.listenTo(app.pubSub, "blankClicked", this.blankClicked);
 		this.listenTo(app.pubSub, "handDealt", this.handDealt);
 		this.listenTo(app.pubSub, "sortByVal", this.collection.sortByVal);
@@ -85,7 +86,6 @@ app.ProtagonistHandView = Backbone.View.extend({
 				cards_in_current_row=0;
 			}
 		}, this);
-		
 		this.render();
 	},
 
@@ -190,7 +190,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 				bRow      = b.get('row');
 		a.set({ position: bPosition, row: bRow });
 		b.set({ position: aPosition, row: aRow });
-	}
+	},
 	
 	swapCards: function(){
 	

@@ -4,7 +4,7 @@ app.ChatView = Backbone.View.extend({
 	el: '#chat_box',
 	initialize: function(){
 		this.render();
-		this.listenTo(app.pubSub, "messageReceived", this.addMessage);
+		this.listenTo(app.pubSub, "dealerMessage", this.addMessage);
 		this.setupDispatcher();
 	},
 	events: {
@@ -46,7 +46,4 @@ app.ChatView = Backbone.View.extend({
 		return;  
 	},
 	
-
-	
-
 });

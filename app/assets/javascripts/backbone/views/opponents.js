@@ -13,7 +13,7 @@ app.OpponentsView = Backbone.View.extend({
 		this.listenToOnce(col, "sync", this.firstTime);
 		
 		//this.listenTo(col, "all", this.eventTracker);
-		this.listenTo(app.pubSub, "arrangements", this.updateCollection);
+		this.listenTo(app.pubSub, "updatePlayersInfo", this.updatePlayersInfo);
 	},
 	
 	firstTime: function(arg){
@@ -56,7 +56,7 @@ app.OpponentsView = Backbone.View.extend({
 		this.$el.append(playerView.render().$el);
 	},
 	
-	updateCollection: function(){
+	updatePlayersInfo: function(){
 		this.collection.fetch({update: true});
 	}
 	
