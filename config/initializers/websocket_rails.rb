@@ -1,5 +1,5 @@
+=begin
 WebsocketRails.setup do |config|
-
   # Uncomment to override the default log level. The log level can be
   # any of the standard Logger log levels. By default it will mirror the
   # current Rails environment log level.
@@ -46,3 +46,4 @@ WebsocketRails.setup do |config|
   # config.user_class = User
 
 end
+=end
