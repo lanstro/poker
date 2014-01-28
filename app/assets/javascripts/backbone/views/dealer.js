@@ -109,7 +109,12 @@ app.DealerView = Backbone.View.extend({
 				msg = "Showdown in "+this.timeUntilShowdown()+"...";
 				break;
 			case SHOWDOWN_NOTIFICATION:
-				msg = "Time's up! Let me just gather up everyone's hands...";
+				if(this.model.get("next_showdown_time") - new Date().getTime() / 1000 > 5){
+					msg = "Everyone's ready to showdown - let's go!"
+				}
+				else {
+					msg = "Time's up! Let me just gather up everyone's hands...";
+				}
 				break;
 			case SEND_PLAYER_INFO:
 				msg = "On to the showdown, unless there are any invalid hands or folders...";
@@ -165,7 +170,7 @@ app.DealerView = Backbone.View.extend({
 	},
 	
 	timeUntilShowdown: function(){
-		var time = this.model.get("next_showdown_time") -  Math.floor( new Date().getTime() / 1000 ) + 2;
+		var time = this.model.get("next_showdown_time") -  Math.floor( new Date().getTime() / 1000 );
 		if(time < 0){
 			time = 0;
 		}

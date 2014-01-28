@@ -36,7 +36,7 @@ class Table
 	OVERALL_SUGAR = 17
 	OVERALL_GAINS_LOSSES = 18
 						 
-	NOTIFICATIONS_DELAY      = [4, 2, 2,  2,  2, 2, 2, 2, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3, 2, 10]
+	NOTIFICATIONS_DELAY      = [4, 2, 10,  10,  2, 2, 2, 2, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3, 2, 10]
 	NOTIFICATIONS_DELAY_TEST = [4, 2, 2,  2,  2, 2, 2, 2, 2,  3, 3, 2, 3,  3, 3, 2,  3, 3, 3, 2, 10]
 	
 	@@tables = []
@@ -501,6 +501,14 @@ class Table
 		end
 	end
 	
+	def check_early_showdown
+		if players_in_hand.all?(&:ready_for_showdown?)
+			@current_job.unschedule
+			@status = SHOWDOWN_NOTIFICATION
+			driver
+		end
+	end
+	
 	def ready(user)
 		player = player_object(user)
 		response = ready_or_fold_checks(player)
@@ -508,7 +516,7 @@ class Table
 			return response
 		else
 			response = player.ready
-			# showdown straight away
+			check_early_showdown
 			return response
 		end
 	end
@@ -520,7 +528,7 @@ class Table
 			return response
 		else
 			player.muck
-			# showdown straight away
+			check_early_showdown
 			return "You have folded."
 		end
 	end

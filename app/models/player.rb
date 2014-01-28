@@ -1,6 +1,6 @@
 class Player
 
-	attr_reader :is_AI, :user, :name, :avatar, :hand, :seat, :invalid, :hands_sat_out
+	attr_reader :is_AI, :user, :name, :avatar, :hand, :seat, :invalid, :hands_sat_out, :ready_for_showdown
 	attr_accessor :in_current_hand, :sitting_out, :folded, :rankings, :invalid
 
 	def initialize(player="AI", table=nil, balance=1000, seat=0, empty=false)
