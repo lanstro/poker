@@ -12,4 +12,5 @@ todo:
 - restyle utility buttons
 - drag & drop for card sorting
 - your own scores at bottom
-- 
+- describe everyone's hands in the message box
+- understand asset pipeline and separate out the page specific stuff

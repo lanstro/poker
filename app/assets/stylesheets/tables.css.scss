@@ -81,7 +81,7 @@
 		}
 	}
 	.opponent:nth-child(even){
-		.opponent_dashboard, .table_avatar, .player_info, .opponent_cards, .hand_ranking{
+		.opponent_dashboard, .table_avatar, .player_info, .opponent_cards, .hand_ranking, .covered_cards{
 			text-align:right;
 			float:right;
 		}
@@ -95,7 +95,7 @@
 		}
 	}
 	.opponent:nth-child(odd){
-		.opponent_dashboard, .table_avatar, .player_info, .opponent_cards, .hand_ranking{
+		.opponent_dashboard, .table_avatar, .player_info, .opponent_cards, .hand_ranking, .covered_cards{
 			text-align:left;
 			float:left;
 		}
