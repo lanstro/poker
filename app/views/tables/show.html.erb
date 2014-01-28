@@ -48,6 +48,8 @@
 		</div>
 		<div class = "opponent_cards">
 		</div>
+		<div class = "hand_ranking">
+		</div>
 	</script>
 	
 	<script type="text/template" id="opponent_dashboard_template">
@@ -89,7 +91,7 @@
 	</script>
 	
 	<script type = "text/template" id="hand_ranking_button_template">
-		<img alt = <@= rank @> class = "hand_ranking_button" src = <@= $.parseJSON('<%= hand_ranking_icon_paths.to_json %>'.replace(/&quot;/g, '"'))[rank] @> >
+		<img alt = <@= rank @> src = <@= $.parseJSON('<%= hand_ranking_icon_paths.to_json %>'.replace(/&quot;/g, '"'))[rank] @> >
 	</script>
 	
 <% end %>

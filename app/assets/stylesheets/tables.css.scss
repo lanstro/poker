@@ -46,6 +46,7 @@
 		display:inline-block;
 		float:left;
 		margin: 1% 0%;
+		position:relative;
 		.opponent_cards {
 			width:40%;
 			max-width:40%;
@@ -73,9 +74,14 @@
 				color:red;
 			}
 		}
+		.hand_ranking{
+			width: 5%;
+			max-width:5%;
+			position:absolute;
+		}
 	}
 	.opponent:nth-child(even){
-		.opponent_dashboard, .table_avatar, .player_info, .opponent_cards{
+		.opponent_dashboard, .table_avatar, .player_info, .opponent_cards, .hand_ranking{
 			text-align:right;
 			float:right;
 		}
@@ -83,15 +89,22 @@
 			float:right;
 			width:20%;
 		}
+		.hand_ranking{
+			right:25%;
+			
+		}
 	}
 	.opponent:nth-child(odd){
-		.opponent_dashboard, .table_avatar, .player_info, .opponent_cards{
+		.opponent_dashboard, .table_avatar, .player_info, .opponent_cards, .hand_ranking{
 			text-align:left;
 			float:left;
 		}
 		.opponent_cards .card{
 			float:left;
 			width:20%;
+		}
+		.hand_ranking{
+			left:25%;
 		}
 	}
 	&:after{

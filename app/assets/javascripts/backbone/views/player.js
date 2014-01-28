@@ -12,7 +12,7 @@ app.PlayerView = Backbone.View.extend({
 		};
 		
 		this.dashboardTemplate= _.template($('#opponent_dashboard_template').html());
-		this.buttonTemplate = _.template($('#hand_ranking_button_template').html());
+		this.handRankingTemplate = _.template($('#hand_ranking_button_template').html());
 		
 		this.listenToOnce(app.pubSub, "statusChanged", this.render);
 		this.listenTo(app.pubSub, "statusChanged", this.statusChanged);
@@ -25,9 +25,11 @@ app.PlayerView = Backbone.View.extend({
 		
 		this.$dashboard = this.$(".opponent_dashboard");
 		this.$cards = this.$(".opponent_cards");
+		this.$handRanking = this.$(".hand_ranking");
 		
 		this.renderDashboard();
 		this.renderHand();
+		this.renderHandRanking();
 		
 		return this;
 	},
@@ -57,8 +59,9 @@ app.PlayerView = Backbone.View.extend({
 				this.renderHand();
 				break;
 		}
-		if (newStatus === OVERALL_GAINS_LOSSES){
-			this.model.set("arrangement", null);
+		if (newStatus >= FRONT_HAND_WINNER_ANNOUNCE &&
+				newStatus <= OVERALL_GAINS_LOSSES){
+			this.renderHandRanking(newStatus);
 		}
 	},
 	
@@ -153,6 +156,29 @@ app.PlayerView = Backbone.View.extend({
 		});
 
 		this.$cards.append(cardView.render().$el);
+	},
+	
+	renderHandRanking: function(newStatus){
+		this.$handRanking.empty();
+		newStatus = typeof newStatus == 'undefined'? app.status() : newStatus;
+		var rank = 0;
+		switch(newStatus){
+			case FRONT_HAND_WINNER_ANNOUNCE:
+				rank = this.model.get("rankings")[FRONT_HAND]["rank"];
+				break;
+			case MID_HAND_WINNER_ANNOUNCE:
+				rank = this.model.get("rankings")[MID_HAND]["rank"];
+				break;
+			case BACK_HAND_WINNER_ANNOUNCE:
+				rank = this.model.get("rankings")[BACK_HAND]["rank"];
+				break;
+		}
+		if(rank > 0){
+			this.$handRanking.html(this.handRankingTemplate({rank: rank}));
+			console.log("handRanking rendered for "+rank);
+		}
+		
+		return this;
 	},
 	
 });
