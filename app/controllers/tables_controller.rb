@@ -1,6 +1,6 @@
 class TablesController < ApplicationController
 
-	before_action :signed_in_user, only: [:destroy, :join, :leave, :create, :ready, :message, :fold, :protagonist_cards, :post_protagonist_cards]
+	before_action :signed_in_user, only: [:destroy, :join, :create, :ready, :message, :fold, :protagonist_cards, :post_protagonist_cards]
 	respond_to :json
 
   def new
@@ -13,7 +13,6 @@ class TablesController < ApplicationController
 			ais=false
 		end 
 		@table=Table.find_empty_table(params[:table][:stakes].to_i, params[:table][:seats].to_i, ais)
-		@table.add_human(current_user)
 		redirect_to table_path(@table.id)
 	end
 
@@ -22,22 +21,38 @@ class TablesController < ApplicationController
   end
 
   def join
+		@table = Table.find_by_id(params[:id])
+		@response = @table.add_to_queue(current_user)
+		respond_to do |format|
+			format.json { render :json => { :response => @response }}
+		end
   end
 
   def leave
+		@table = Table.find_by_id(params[:id])
+		@response = @table.leave_table(current_user)
+		respond_to do |format|
+			format.json { render :json => { :response => @response }}
+		end
   end
 
   def ready
-  end
-
-  def message
+		respond_to do |format|
+			format.json { render :json => { :response => Table.find_by_id(params[:id]).ready(current_user) }}
+		end
   end
 
   def fold
+		respond_to do |format|
+			format.json { render :json => { :response => Table.find_by_id(params[:id]).fold(current_user) }}
+		end
   end
 
-  def destroy
-  end
+	def sitout
+		respond_to do |format|
+			format.json { render :json => { :response => Table.find_by_id(params[:id]).sitout(current_user) }}
+		end
+	end
 	
 	def index
 		@tables = Table.all

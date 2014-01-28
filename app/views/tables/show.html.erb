@@ -31,13 +31,7 @@
 				</div>
 				<div id="chat_box">
 				</div>
-				<div id="buttons">
-					<ul>
-						<li><a href="#">Leave Table</a></li>
-						<li><a href="#">Sit out next hand</a></li>
-						<li><a href="#">Fold</a></li>
-						<li><a href="#">Ready</a></li>
-					</ul>
+				<div id="utility_buttons">
 				</div>
 			</div>
 		</div>
@@ -92,6 +86,36 @@
 	
 	<script type = "text/template" id="hand_ranking_button_template">
 		<img alt = <@= rank @> src = <@= $.parseJSON('<%= hand_ranking_icon_paths.to_json %>'.replace(/&quot;/g, '"'))[rank] @> >
+	</script>
+	
+	<script type = "text/template" id="utility_buttons_template">
+		<ul>
+			<li id="join">	
+				<%= form_for(@table, :url => join_table_path, :html=> {:method => :post}, remote: true ) do |f| %>
+					<%= f.submit("Join table", {class: "btn btn-large btn-primary menu_button"}) %>
+				<% end %>
+			</li>
+			<li id="leave">	
+				<%= form_for(@table, :url => leave_table_path, :html=> {:method => :post}, remote: true ) do |f| %>
+					<%= f.submit("Leave table", {class: "btn btn-large btn-primary menu_button"}) %>
+				<% end %>
+			</li>
+			<li id="sitout">	
+				<%= form_for(@table, :url => sitout_table_path, :html=> {:method => :post}, remote: true ) do |f| %>
+					<%= f.submit("Sit out", {class: "btn btn-large btn-primary menu_button"}) %>
+				<% end %>
+			</li>
+			<li id="fold">	
+				<%= form_for(@table, :url => fold_table_path, :html=> {:method => :post}, remote: true ) do |f| %>
+					<%= f.submit("Fold", {class: "btn btn-large btn-primary menu_button"}) %>
+				<% end %>
+			</li>
+			<li id="ready">	
+				<%= form_for(@table, :url => ready_table_path, :html=> {:method => :post}, remote: true ) do |f| %>
+					<%= f.submit("Ready", {class: "btn btn-large btn-primary menu_button"}) %>
+				<% end %>
+			</li>
+		</ul>
 	</script>
 	
 <% end %>

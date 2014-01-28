@@ -36,6 +36,7 @@ app.PlayerView = Backbone.View.extend({
 	
 	statusChanged: function(newStatus){
 		switch (newStatus){
+			case DEALING:
 			case WAITING_TO_START:
 			case FOLDERS_NOTIFICATION:
 			case SHOWING_DOWN_FRONT_NOTIFICATION:
@@ -54,7 +55,6 @@ app.PlayerView = Backbone.View.extend({
 			case BACK_HAND_WINNER_ANNOUNCE:
 				this.renderDashboard(newStatus);
 				break;
-			case DEALING:
 			case INVALIDS_NOTIFICATION:
 				this.renderHand();
 				break;
@@ -93,6 +93,18 @@ app.PlayerView = Backbone.View.extend({
 				case OVERALL_SUGAR:
 					amount =  this.model.get("rankings")[OVERALL_SUGAR_INDEX]["sugars"];
 					break;
+				case OVERALL_GAINS_LOSSES:
+					for( var index = FRONT_HAND; index <= OVERALL_SUGAR_INDEX; index++){
+						var temp = this.model.get("rankings")[index]["hand"];
+						if(typeof temp == 'number'){
+							amount+=temp;
+						}
+						temp = this.model.get("rankings")[index]["sugars"];
+						if(typeof temp == 'number'){
+							amount+=temp;
+						}
+					}
+					break;
 			}
 		}
 		if(typeof amount != 'undefined' && amount != 0){
@@ -119,6 +131,9 @@ app.PlayerView = Backbone.View.extend({
 	renderHand: function(){
 		var status= app.status();
 		this.$cards.empty();
+		if( !this.model.get("in_current_hand")){
+			this.$cards.html("<p>(Sitting out)</p>");
+		}
 		if( (status >= DEALING && status <= SEND_PLAYER_INFO) ||
 				(status === FOLDERS_NOTIFICATION  && !this.model.get("folded")) ||
 				(status === INVALIDS_NOTIFICATION && !this.model.get("invalid"))){
@@ -175,7 +190,6 @@ app.PlayerView = Backbone.View.extend({
 		}
 		if(rank > 0){
 			this.$handRanking.html(this.handRankingTemplate({rank: rank}));
-			console.log("handRanking rendered for "+rank);
 		}
 		
 		return this;

@@ -1,0 +1,15 @@
+todo:
+
+- better message log - indentation, coloring
+- float on card backs / invalids / folders
+- fixing protagonist card view
+- secure / individual channels
+- hiding buttons / protagonist hand view depending on whether player logged in
+- popup messages for replies to posts
+- rules page
+- swap button
+- kickstarter
+- restyle utility buttons
+- drag & drop for card sorting
+- your own scores at bottom
+- 

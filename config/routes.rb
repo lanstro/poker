@@ -8,16 +8,28 @@ Poker::Application.routes.draw do
 	resources :users
 	resources :sessions, only: [:new, :create, :destroy]
 	
-	resources :tables
+	resources :tables do
+		member do
+			get 'players_info'
+			get 'protagonist_cards'
+			post 'post_protagonist_cards'
+			get 'status'
+			
+			post 'join'
+			post 'leave'
+			post 'ready'
+			post 'fold'
+			post 'sitout'
+		end
+	end
 	
-	get  'tables/:id/players_info' => 'tables#players_info'
-	get  'tables/:id/protagonist_cards' => 'tables#protagonist_cards'
-	post 'tables/:id/post_protagonist_cards' => 'tables#post_protagonist_cards'
-	get  'tables/:id/status' => 'tables#status'
+	#get  'tables/:id/players_info' => 'tables#players_info'
+	#get  'tables/:id/protagonist_cards' => 'tables#protagonist_cards'
+	#post 'tables/:id/post_protagonist_cards' => 'tables#post_protagonist_cards'
+	#get  'tables/:id/status' => 'tables#status'
 	
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".
-
 
   # Example of regular route:
   #   get 'products/:id' => 'catalog#view'

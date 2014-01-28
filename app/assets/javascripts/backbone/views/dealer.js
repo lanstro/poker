@@ -77,9 +77,9 @@ app.DealerView = Backbone.View.extend({
 			this.counter = setInterval(this.render, 1000);
 		}
 		if((oldStatus < SEND_PLAYER_INFO && data.status >= SEND_PLAYER_INFO) ||
-			 data.status === OVERALL_GAINS_LOSSES){
+			 data.status === WAITING_TO_START){
 			// want to update playersInfo at INVALIDS_NOTIFICATION so we can get all the hands/rankings for the hand
-			// and again at the end of a hand to ensure we're still synched up to server
+			// and again at the start of a hand to ensure we're still synched up to server
 			app.pubSub.trigger('updatePlayersInfo');
 			clearInterval(this.counter);
 		}
@@ -151,7 +151,7 @@ app.DealerView = Backbone.View.extend({
 				msg = this.sugarAnnounce(OVERALL_SUGAR_INDEX);
 				break;
 			case OVERALL_GAINS_LOSSES:
-				msg = "Round completed.  Here's a summary of your gains and losses...";
+				msg = "Round completed.  Here's a summary of the gains and losses...";
 				break;
 		}
 		return msg;
@@ -165,7 +165,11 @@ app.DealerView = Backbone.View.extend({
 	},
 	
 	timeUntilShowdown: function(){
-		return this.model.get("next_showdown_time") -  Math.floor( new Date().getTime() / 1000 ) + 2
+		var time = this.model.get("next_showdown_time") -  Math.floor( new Date().getTime() / 1000 ) + 2;
+		if(time < 0){
+			time = 0;
+		}
+		return time;
 	},
 	
 	foldersInvalidsDescription: function(foldedOrInvalid){

@@ -28,8 +28,12 @@ class Hand
 	end
 	
 	def hand_valid
-		if !@arranged
+		if !@owner or @owner.is_AI?
 			auto_arrange
+		elsif !@arranged and @owner.human?
+			@owner.sitting_out = true
+			auto_arrange
+			# message owner that they're sitting out because they're either lagging or have disconnected
 		end
 		evaluate_all_subhands
 		if @arrangement[FRONT_HAND][:cards].size != 3 or

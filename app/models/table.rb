@@ -1,5 +1,8 @@
 class Table
 
+	include ActiveModel::Conversion
+	extend  ActiveModel::Naming
+
 	require 'rufus-scheduler'
 
 	#defaults
@@ -50,6 +53,8 @@ class Table
 		@id = @@count
 		@seats = seats
 		@players = []
+		@join_queue = []
+		@leave_queue = []
 		@ais = ais
 		@decks = 1+ (@seats-1) / 4
 		@cards=[]
@@ -64,10 +69,7 @@ class Table
 			@cards.push(Card.new(val+1))
 		end
 		
-		if @ais == true
-			fill_seats_with_AIs
-		end
-		
+		fill_seats_with (@ais? "AIs" :"empty")
 		driver
   end
 	
@@ -77,41 +79,52 @@ class Table
     @@my_logger ||= Logger.new("#{Rails.root}/log/my1.log")
   end
 	
-	def fill_seats_with_AIs
-		seat = 1
+	def new_ai(seat)
+		return Player.new("AI", self, @stakes * 200, seat, false)
+	end
+	
+	def new_empty_seat(seat)
+		return Player.new("Empty", self, 0, seat, true)
+	end
+	
+	def new_human(user, seat)
+		return Player.new(user, self, user.balance, seat)
+	end
+	
+	def fill_seats_with(what = "AIs")
+		seat = 0
 		while @players.size < @seats
-			@players.push(Player.new("AI", self, @stakes * 200, seat))
+			if what == "AIs"
+				@players.push new_ai(seat)
+			else
+				@players.push new_empty_seat(seat)
+			end
 			seat+=1
 		end
 	end
 
 	def full?
-		if @players.size < @seats
-			return false
+		if @join_queue.size + @players.count(&:human?) < @seats
+			return true
 		end
-		@players.each do |player|
-			if !player.human?
-				return false
-			end
-		end
-		return true
+		return false
 	end
 	
 	def add_human user
 		index=0
 		@players.each do |a|
 			if a.empty? or a.is_AI?
-				players[index] = Player.new(user, self, user.balance, index)
-				return
+				players[index] = new_human(user, index)
+				return true
 			end
 			index+=1
 		end
+		return false
 	end
 	
 	def enough_players?
 		count = 0
 		@players.each do |player|
-			player.current_hand_balance = 0
 			if player.sitting_out
 				player.in_current_hand = false
 			else
@@ -120,6 +133,42 @@ class Table
 			end
 		end
 		return count >= 2
+	end
+	
+	def already_on_table?(user)
+		if player_object user
+			return true
+		end
+		return false
+	end
+	
+	def add_to_queue(user)
+		if already_on_table?(user)
+			return "Already on the table"
+		elsif @join_queue.include? user
+			return "Already in queue"
+		else
+			@join_queue.push(user)
+			return "Successfully joined queue"
+		end
+	end
+	
+	def leave_table(user)
+		if !user
+			return "Goodbye guest!"
+		end
+		player = nil
+		if @join_queue.include? user
+			@join_queue-=[user]
+			return "Removed from queue to join the table."
+		elsif @leave_queue.include? user
+			return "You will already leave the table after this hand."
+		end
+		if !(player_object user)
+			return "Goodbye observer!"
+		end
+		@leave_queue += [user]
+		return "Request to leave at the end of the hand received"
 	end
 	
 	#scheduler
@@ -146,6 +195,30 @@ class Table
 	
 		# for some statuses, need extra action
 		case @status
+			when WAITING_TO_START
+				@leave_queue.concat @players.dup.keep_if(&:kick_off_for_inactivity?).map(&:user)
+				@leave_queue.each do |user|
+					player = player_object(user)
+					seat = player.seat
+					player.leave_table
+					if @join_queue.size > 0
+						@players[seat]=new_human(@join_queue.shift, seat)
+					else
+						@players[seat]= @ais? new_ai(seat) : new_empty_seat(seat)
+					end
+					@leave_queue -= [user]
+				end
+				@join_queue.each do |user|
+					if already_on_table? user
+						@join_queue -= [user]
+					else
+						if add_human user
+							@join_queue -= [user]
+						else
+							break
+						end
+					end
+				end
 			when DEALING
 				if enough_players?
 					deal
@@ -153,8 +226,6 @@ class Table
 				else
 					@status = NOT_ENOUGH_PLAYERS
 				end
-			when WAITING_FOR_CARD_SORTING
-				#broadcast timer for all clients
 			when SEND_PLAYER_INFO
 				muck_invalids
 				calculate_folders
@@ -181,11 +252,7 @@ class Table
 			when OVERALL_SUGAR
 				payout(:sugars, OVERALL_SUGAR_INDEX)
 			when OVERALL_GAINS_LOSSES
-				@players.each do |player|
-					player.muck
-					player.invalid = false
-					player.folded = false
-				end
+				players_in_hand.each(&:new_hand_started)
 		end
 		
 		broadcast_status
@@ -214,31 +281,19 @@ class Table
 	# common queries
 	
 	def players_in_hand
-		temp = @players.dup
-		temp.keep_if do |player|
-		  player.in_current_hand
-		end
-		return temp
+		return @players.dup.keep_if(&:in_current_hand)
+	end
+	
+	def players_sitting_out
+		return @players.dup.keep_if(&:sitting_out)
 	end
 	
 	def human_players_in_hand
-		return players_in_hand.keep_if do |player|
-			player.human?
-		end
+		return players_in_hand.keep_if(&:human?)
 	end
 
 	def players_at_showdown
-		return players_in_hand.keep_if do |player|
-			!player.folded
-		end
-	end
-	
-	def players_in_next_hand
-		temp = @players.dup
-		temp.keep_if do |player|
-			!player.sitting_out
-		end
-		return temp
+		return players_in_hand.delete_if(&:folded)
 	end
 	
 	def invalid_hands?
@@ -250,11 +305,7 @@ class Table
 	end
 	
 	def folders?
-		temp=players_in_hand
-		temp.keep_if do |player|
-			player.folded
-		end
-		return temp
+		return players_in_hand.keep_if(&:folded)
 	end
 	
 	# play
@@ -268,6 +319,7 @@ class Table
 		end
 		@next_showdown_time = (Time.new + NOTIFICATIONS_DELAY[DEALING] + NOTIFICATIONS_DELAY[WAITING_FOR_CARD_SORTING] +
 													NOTIFICATIONS_DELAY[ALMOST_SHOWDOWN]).to_i
+		players_sitting_out.each(&:missed_a_hand);
 	end
 	
 	def muck
@@ -277,8 +329,10 @@ class Table
 	def muck_invalids
 		invalids = invalid_hands?
 		if invalids.length > 0
-			invalids.each(&:muck)
-			invalids.each { |invalid| invalid.invalid = true }
+			invalids.each do |invalid|
+				invalid.muck
+				invalid.invalid=true
+			end
 		end
 	end
 
@@ -319,10 +373,6 @@ class Table
 		sugars=0
 		
 		ranks.each do |player|
-			puts "===="
-			puts player.name
-			puts player.hand.arrangement[which_hand][:human_name]
-			puts counter.to_s
 			#if this player has the same hand as the previous player
 			if players_on_previous_rank.size > 0 && 
 				 player.hand.arrangement[which_hand][:unique_value] == players_on_previous_rank.first.hand.arrangement[which_hand][:unique_value]
@@ -422,6 +472,59 @@ class Table
 		return false
 	end
 	
+	# sitout
+	
+	def sitout(user)
+		player = player_object(user)
+		if !player
+			return "You are not playing"
+		else
+			return player.sitout
+		end
+	end
+	
+	# player card actions
+	
+	def ready_or_fold_checks(player)
+		if !player
+			return "You are not in the hand."
+		elsif !player.in_current_hand
+			return "You are not in the hand."
+		elsif player.folded
+			return "You have already folded."
+		elsif @status < DEALING
+			return "You don't even have your cards yet!"
+		elsif @status >= SHOWDOWN_NOTIFICATION
+			return "Too late.  It's already showdown time."
+		else
+			return false
+		end
+	end
+	
+	def ready(user)
+		player = player_object(user)
+		response = ready_or_fold_checks(player)
+		if response
+			return response
+		else
+			response = player.ready
+			# showdown straight away
+			return response
+		end
+	end
+	
+	def fold(user)
+		player = player_object(user)
+		response = ready_or_fold_checks(player)
+		if response
+			return response
+		else
+			player.muck
+			# showdown straight away
+			return "You have folded."
+		end
+	end
+	
 	# external queries
 	
 	def players_info
@@ -436,34 +539,38 @@ class Table
 	end
 	
 	def protagonist_cards(user)
-		@players.each do |p|
-			if p.user == user
-				return p.hand.cards
-			end
+		p = player_object user
+		if p
+			return p.hand.cards
+		else
+			return "You are not playing."
 		end
 	end
 	
 	def post_protagonist_cards(user, arrangement)
 		# should check whether arrangement is valid format
+		
+		player = player_object user
+		
+		if !player
+			return "You are not playing."
+		end
+		
 		if !arrangement.kind_of?(Array) or
 		   arrangement.size != 3
-			 return "not valid arrangement"
+			 return "Something has gone wrong - your hand is not valid arrangement"
 		end
-		# check that arrangement matches user's cards
-		player, card_vals = nil, nil
 		
-		@players.each do |p|
-			if p.user == user
-				card_vals=p.hand.cards.map do |card|
-					card.val
-				end
-				player = p
-			end
+		# check that arrangement matches user's cards
+		card_vals = nil
+		
+		card_vals = player.hand.cards.map do |card|
+			card.val
 		end
 		
 		if card_vals.sort != arrangement.flatten.sort
 			# dedicate a separate log file?
-			return "Cheater"
+			return "Your submitted hand is different to what I dealt you - cheater."
 		end
 		return player.hand.post_protagonist_cards(arrangement)
 	end
@@ -497,6 +604,15 @@ class Table
 	end
 	
 	# other
+	
+	def player_object(user)
+		@players.each do |p|
+			if p.user==user
+				return p
+			end
+		end
+		return nil
+	end
 	
 	def persisted?
 		false

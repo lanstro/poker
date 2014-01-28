@@ -58,6 +58,7 @@ $(document).ready(function(){
 		app.d = new app.ProtagonistHandDescriptionView();
 		app.e = new app.ChatView();
 		app.f = new app.DealerView();
+		app.g = new app.UtilityButtonsView();
 	}
 	
 	app.status = function(){
