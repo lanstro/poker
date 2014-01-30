@@ -52,21 +52,28 @@ $(document).ready(function(){
 	if($('#table').length > 0 ){
 		
 		app.pubSub = _.extend({}, Backbone.Events);
-		app.a = new app.ProtagonistHandView();
-		app.b = new app.OpponentsView();
-		app.c = new app.SortButtonsView();
-		app.d = new app.ProtagonistHandDescriptionView();
-		app.e = new app.ChatView();
-		app.f = new app.DealerView();
+
+		app.a = new app.DealerView();
+		app.b = new app.ChatView();
+		
+		app.c = new app.OpponentsView();  // fix last
 		app.g = new app.UtilityButtonsView();
 	}
 	
 	app.status = function(){
-		return app.f.model.get("status");
+		return app.a.model.get("status");
 	}
 	
 	app.playerInfo = function(){
-		return app.b.collection;
+		return app.c.collection;
+	}
+	
+	app.inHand = function(){
+		return app.a.model.get("in_hand");
+	}
+	
+	app.seat = function(){
+		return app.a.model.get("seat");
 	}
 	
 });

@@ -36,8 +36,8 @@ class Table
 	OVERALL_SUGAR = 17
 	OVERALL_GAINS_LOSSES = 18
 						 
-	NOTIFICATIONS_DELAY      = [4, 2, 10,  10,  2, 2, 2, 2, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3, 2, 10]
-	NOTIFICATIONS_DELAY_TEST = [4, 2, 2,  2,  2, 2, 2, 2, 2,  3, 3, 2, 3,  3, 3, 2,  3, 3, 3, 2, 10]
+	NOTIFICATIONS_DELAY      = [4, 2, 30,  10,  2, 2, 2, 2, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3, 2, 10]
+	NOTIFICATIONS_DELAY_TEST = [4, 2, 2,   2,   2, 2, 2, 2, 2,  3, 3, 2, 3,  3, 3, 2,  3, 3, 3, 2, 10]
 	
 	@@tables = []
 	@@count = 0
@@ -53,8 +53,10 @@ class Table
 		@id = @@count
 		@seats = seats
 		@players = []
+		
 		@join_queue = []
 		@leave_queue = []
+		
 		@ais = ais
 		@decks = 1+ (@seats-1) / 4
 		@cards=[]
@@ -92,14 +94,14 @@ class Table
 	end
 	
 	def fill_seats_with(what = "AIs")
-		seat = 0
-		while @players.size < @seats
-			if what == "AIs"
-				@players.push new_ai(seat)
-			else
-				@players.push new_empty_seat(seat)
+		@seats.times do |seat|
+			if !@players[seat]
+				if what == "AIs"
+					@players[seat]= new_ai(seat)
+				else
+					@players[seat]= new_empty_seat(seat)
+				end
 			end
-			seat+=1
 		end
 	end
 
@@ -112,12 +114,11 @@ class Table
 	
 	def add_human user
 		index=0
-		@players.each do |a|
-			if a.empty? or a.is_AI?
-				players[index] = new_human(user, index)
+		@seats.times do |seat|
+			if !@players[seat] or @players[seat].empty? or @players[seat].is_AI?
+				@players[index] = new_human(user, index)
 				return true
 			end
-			index+=1
 		end
 		return false
 	end
@@ -135,7 +136,7 @@ class Table
 		return count >= 2
 	end
 	
-	def already_on_table?(user)
+	def on_table?(user)
 		if player_object user
 			return true
 		end
@@ -143,13 +144,13 @@ class Table
 	end
 	
 	def add_to_queue(user)
-		if already_on_table?(user)
-			return "Already on the table"
+		if on_table?(user)
+			return "You are already on the table."
 		elsif @join_queue.include? user
-			return "Already in queue"
+			return "YOu are already in the queue."
 		else
 			@join_queue.push(user)
-			return "Successfully joined queue"
+			return "You have joined the queue. New players are added at the start of every hand."
 		end
 	end
 	
@@ -160,7 +161,7 @@ class Table
 		player = nil
 		if @join_queue.include? user
 			@join_queue-=[user]
-			return "Removed from queue to join the table."
+			return "You have removed yourself from the queue to join the table."
 		elsif @leave_queue.include? user
 			return "You will already leave the table after this hand."
 		end
@@ -168,7 +169,7 @@ class Table
 			return "Goodbye observer!"
 		end
 		@leave_queue += [user]
-		return "Request to leave at the end of the hand received"
+		return "You will be removed from the table at the end of the hand."
 	end
 	
 	#scheduler
@@ -209,7 +210,7 @@ class Table
 					@leave_queue -= [user]
 				end
 				@join_queue.each do |user|
-					if already_on_table? user
+					if on_table? user
 						@join_queue -= [user]
 					else
 						if add_human user
@@ -222,7 +223,6 @@ class Table
 			when DEALING
 				if enough_players?
 					deal
-					custom_notification "cards"
 				else
 					@status = NOT_ENOUGH_PLAYERS
 				end
@@ -264,18 +264,7 @@ class Table
 	end
 	
 	def broadcast_status
-		WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:table_status, {status: @status })
-	end
-	
-	def custom_notification(type)
-		case type
-			when "cards"
-				human_players_in_hand.each do |player|
-					# make separate secure channel
-					WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:hand_dealt, cards: player.hand.cards)
-				end
-				WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:next_showdown_time, @next_showdown_time)
-		end
+		WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:table_status, {status: @status, next_showdown_time: @next_showdown_time })
 	end
 	
 	# common queries
@@ -317,7 +306,7 @@ class Table
 			player.dealt_card(@cards[index])
 			index+=1
 		end
-		@next_showdown_time = (Time.new + NOTIFICATIONS_DELAY[DEALING] + NOTIFICATIONS_DELAY[WAITING_FOR_CARD_SORTING] +
+		@next_showdown_time = (Time.new + NOTIFICATIONS_DELAY[WAITING_FOR_CARD_SORTING] +
 													NOTIFICATIONS_DELAY[ALMOST_SHOWDOWN]).to_i
 		players_sitting_out.each(&:missed_a_hand);
 	end
@@ -477,7 +466,7 @@ class Table
 	def sitout(user)
 		player = player_object(user)
 		if !player
-			return "You are not playing"
+			return "You are not on the table."
 		else
 			return player.sitout
 		end
@@ -577,6 +566,7 @@ class Table
 		end
 		
 		if card_vals.sort != arrangement.flatten.sort
+			player.muck
 			# dedicate a separate log file?
 			return "Your submitted hand is different to what I dealt you - cheater."
 		end

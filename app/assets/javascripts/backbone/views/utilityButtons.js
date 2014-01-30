@@ -17,19 +17,15 @@ app.UtilityButtonsView = Backbone.View.extend({
 	},
 	
 	joinLeave: function(){
-		console.log("joinleave clicked");
 	},
 	
 	
 	sit_out: function(){
-		console.log("sitout clicked");
 	},
 	
 	fold: function(){
-		console.log("fold clicked");
 	},
 	
 	ready: function(){
-		console.log("ready clicked");
 	},
 });

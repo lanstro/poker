@@ -78,11 +78,28 @@ class TablesController < ApplicationController
 	
 	def status
 		@table = Table.find_by_id(params[:id])
+		player = @table.player_object(current_user)
+		if(player)
+			result = { status: @table.status, next_showdown_time: @table.next_showdown_time,  in_hand: true, seat: player.seat}
+		else
+			result = { status: @table.status, next_showdown_time: @table.next_showdown_time,  in_hand: false, seat: nil}
+		end
 		respond_to do |format|
-			format.json { render :json => { status: @table.status, next_showdown_time: @table.next_showdown_time } }
+			format.json { render :json =>  result}
 		end
 	end
 	
+	def in_hand
+		@table = Table.find_by_id(params[:id])
+		if @table.player_object(current_user)
+			response = true
+		else
+			response = false
+		end
+		respond_to do |format|
+			format.json { render :json => { in_hand: response } }
+		end
+	end
 	
 	private
 	

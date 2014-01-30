@@ -14,7 +14,6 @@ Poker::Application.routes.draw do
 			get 'protagonist_cards'
 			post 'post_protagonist_cards'
 			get 'status'
-			
 			post 'join'
 			post 'leave'
 			post 'ready'

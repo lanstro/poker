@@ -13,33 +13,13 @@ app.ProtagonistHandView = Backbone.View.extend({
 		this.listenTo(col, "sort", this.sorted);
 		this.listenToOnce(app.pubSub, 'statusChanged', this.render);
 		this.listenTo(app.pubSub, "blankClicked", this.blankClicked);
-		this.listenTo(app.pubSub, "handDealt", this.handDealt);
 		this.listenTo(app.pubSub, "sortByVal", this.collection.sortByVal);
 		this.listenTo(app.pubSub, "sortBySuit", this.collection.sortBySuit);
-		this.listenTo(app.pubSub, "protagonistHandRendered", this.recalcHands);
+		//this.listenTo(app.pubSub, "protagonistHandRendered", this.recalcHands);
 		this.listenTo(app.pubSub, "statusChanged", this.statusChanged);
 		this.listenTo(app.pubSub, "swapCards", this.swapCards);
 	},
 
-	eventTracker: function(arg1, arg2){
-		console.log("hand view's 'all' event called");
-		console.log("event was: "+arg1);
-		if(arg2){
-			var cache=[];
-			console.log("arg2 was "+JSON.stringify(arg2, function(key, value) {
-				if (typeof value === 'object' && value !== null) {
-						if (cache.indexOf(value) !== -1) {
-								// Circular reference found, discard key
-								return;
-						}
-						// Store value in our collection
-						cache.push(value);
-				}
-				return value;
-			}));
-		}
-	},
-	
 	blankClicked: function(row, position){
 	
 		if(app.status() < DEALING || app.status() > ALMOST_SHOWDOWN){
@@ -101,19 +81,23 @@ app.ProtagonistHandView = Backbone.View.extend({
 				this.render();
 				break;
 		}
+		if(newStatus == DEALING){
+			this.collection.fetch();
+		}
 		if (newStatus === SHOWDOWN_NOTIFICATION){
 			this.postHand();
+		}
+		if (newStatus === OVERALL_GAINS_LOSSES){
+			this.collection.reset();
 		}
 	},
 	
 	render: function(){
-		if(this.collection.models.length === 0){
-			return;
-		}
+	
 		var status = app.status();
 		this.$el.empty();
 		
-		if(status < DEALING || status > BACK_HAND_SUGAR){
+		if(this.collection.models.length === 0 || status < DEALING || status > BACK_HAND_SUGAR){
 			this.renderRow([false, false, false]);
 		}
 		else if(status >= DEALING && status <= FOLDERS_NOTIFICATION){
@@ -164,6 +148,9 @@ app.ProtagonistHandView = Backbone.View.extend({
 	
 	postHand: function(){
 		result = [[], [], []];
+		if(this.collection.size() === 0){
+			return;
+		}
 		_.each(this.collection.models, function(card){
 			result[card.get("row")].push(card.get("val"));
 		});
@@ -182,7 +169,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 		});
 		this.$el.prepend(cardView.render().$el);
 	},
-	
+		
 	switchCards: function(a, b){
 		var aPosition = a.get('position'),
 				bPosition = b.get('position'),
@@ -205,7 +192,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 	},
 	
 	recalcHands: function(){
-		var descriptions= ["Invalid", "Invalid", "Invalid"];
+		var descriptions= ["", "", ""];
 		for(i=0; i<3; i++){
 			if(this.handNumbersValid(i)){
 				descriptions[i] = this.collection.evaluateSubhand(i)["humanName"];
@@ -244,5 +231,25 @@ app.ProtagonistHandView = Backbone.View.extend({
 		return true;
 	},
 
+	/*
+	eventTracker: function(arg1, arg2){
+		console.log("hand view's 'all' event called");
+		console.log("event was: "+arg1);
+		if(arg2){
+			var cache=[];
+			console.log("arg2 was "+JSON.stringify(arg2, function(key, value) {
+				if (typeof value === 'object' && value !== null) {
+						if (cache.indexOf(value) !== -1) {
+								// Circular reference found, discard key
+								return;
+						}
+						// Store value in our collection
+						cache.push(value);
+				}
+				return value;
+			}));
+		}
+	},
+*/
 	
 });

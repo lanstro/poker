@@ -133,6 +133,7 @@ app.PlayerView = Backbone.View.extend({
 		this.$cards.empty();
 		if( !this.model.get("in_current_hand")){
 			this.$cards.html("<p>(Sitting out)</p>");
+			return this;
 		}
 		if( (status >= DEALING && status <= SEND_PLAYER_INFO) ||
 				(status === FOLDERS_NOTIFICATION  && !this.model.get("folded")) ||

@@ -9,8 +9,9 @@ app.DealerView = Backbone.View.extend({
 		
 		this.nextShowdownTime = null;
 		
-		_.bindAll(this, 'receivedStatus', 'setShowdownTime', 'render');
+		_.bindAll(this, 'receivedStatus', 'render', 'toggleProtagonistViews');
 		this.listenToOnce(this.model, "sync", this.firstStatus);
+		this.listenTo(this.model, "change:in_hand", this.toggleProtagonistViews);
 		this.setupDispatcher();
 		this.counter=null;
 	},
@@ -24,13 +25,10 @@ app.DealerView = Backbone.View.extend({
 		if(!app.dispatcher){
 			app.dispatcher = app.dispatcher || new WebSocketRails($('#table').data('uri'));
 			app.dispatcher = app.dispatcher.subscribe($("#table").data("table_id")+'_chat');
+			app.dispatcher.bind('client_send_message', this.receivedChat);
+			app.dispatcher.bind('table_status', this.receivedStatus);
 		}
-		app.dispatcher.bind('client_send_message', this.receivedChat);
-		app.dispatcher.bind('table_status', this.receivedStatus);
-		app.dispatcher.bind('hand_dealt', this.handDealt);
-		app.dispatcher.bind('next_showdown_time', this.setShowdownTime);
 	},
-
 	
 	receivedChat: function(data){
 		app.pubSub.trigger("messageReceived", data);
@@ -40,14 +38,41 @@ app.DealerView = Backbone.View.extend({
 		app.pubSub.trigger("statusChanged",this.model.get("status"));
 	},
 	
+	toggleProtagonistViews: function(){
+		var inHand = this.model.get("in_hand");
+		app.pubSub.trigger("inHandChanged", inHand);
+		if(inHand){
+			if(typeof app.d == 'undefined')
+				app.d = new app.ProtagonistHandView();
+			if(typeof app.e == 'undefined')
+				app.e = new app.SortButtonsView();
+		}
+		else{
+			_.each([app.d, app.e], function(view){
+				if(typeof view != 'undefined'){
+					view.remove();
+					view.render();
+					delete view;
+				}
+			});
+		}
+	},
+	
 	firstStatus: function(data){
 		status = data.get("status");
 		this.broadcastStatusChange(status);
+		
+		if(this.model.get("in_hand"))
+			this.toggleProtagonistViews();
+		
 		this.render();
+		
 		var msg = this.correct_message();
+		
 		if(msg.length > 0){
 			app.pubSub.trigger("dealerMessage", {user: "Dealer", broadcast: this.correct_message()});
 		}
+		
 		if( status == WAITING_FOR_CARD_SORTING || status == ALMOST_SHOWDOWN){
 			clearInterval(this.counter);
 			this.counter = setInterval(this.render, 1000);
@@ -55,7 +80,6 @@ app.DealerView = Backbone.View.extend({
 	},
 	
 	receivedStatus: function(data){
-	
 		var oldStatus = this.model.get("status");
 
 		if(oldStatus === data.status){
@@ -64,14 +88,17 @@ app.DealerView = Backbone.View.extend({
 		
 		this.model.set({status: data.status});
 		this.broadcastStatusChange(data.status);
+		
 		this.render();
 		
 		var msg = this.correct_message();
 		if(msg.length > 0){
 			app.pubSub.trigger("dealerMessage", {user: "Dealer", broadcast: this.correct_message()});
 		}
-		
-
+		if(data.status === DEALING){
+			// check whether we're on the table now
+			this.model.fetch();
+		}
 		if(data.status === WAITING_FOR_CARD_SORTING || data.status === ALMOST_SHOWDOWN){
 			clearInterval(this.counter);
 			this.counter = setInterval(this.render, 1000);
@@ -83,10 +110,6 @@ app.DealerView = Backbone.View.extend({
 			app.pubSub.trigger('updatePlayersInfo');
 			clearInterval(this.counter);
 		}
-	},
-	
-	handDealt: function(cards){
-		app.pubSub.trigger('handDealt', cards);
 	},
 	
 	correct_message: function(){
@@ -163,12 +186,7 @@ app.DealerView = Backbone.View.extend({
 	},
 	
 	// counter related code
-	
-	
-	setShowdownTime: function(time){		
-		this.model.set("next_showdown_time", time);
-	},
-	
+		
 	timeUntilShowdown: function(){
 		var time = this.model.get("next_showdown_time") -  Math.floor( new Date().getTime() / 1000 );
 		if(time < 0){
@@ -176,6 +194,8 @@ app.DealerView = Backbone.View.extend({
 		}
 		return time;
 	},
+	
+	// writing correct dealer announcements
 	
 	foldersInvalidsDescription: function(foldedOrInvalid){
 		var players = [], msg = "";

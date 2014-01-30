@@ -73,7 +73,7 @@ class Player
 	end
 
 	def kick_off_for_inactivity?
-		return @hands_sat_out >= 1
+		return @hands_sat_out >= 3
 	end
 	
 	def muck
