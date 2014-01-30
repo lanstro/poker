@@ -4,24 +4,12 @@
 		<section>
 			<h1>
 				<%= avatar_for @user %>
-				<%= @user.name %>, <%= @user.email %>, <%= @user.balance %>
+				<%= @user.name %>
 			</h1>
-		</section>
-		<section>
-			<% if current_user?(@user) %>
-				<%= link_to "Change Avatar", "#", :id=>"show_avatars_choice", remote: true %>
-			<% end %>
 		</section>
 	</aside>
 	<p>Balance: <%= @user.balance %></p>
-	<% if current_user?(@user) and @user.balance < TOP_UP_MAXIMUM %>
-		<br >
-		<p>
-			Your balance seems a bit low!  Click 
-				<%= link_to "here", topup_user_path(@user) %>
-  			if you want to top it up with another 1,000 credits for free.
-		</p>
-	<% end %>
+	<p>Amount currently on tables: <%= @user.table_balance.values.sum %>
 </div>
 
 <div id="avatar_choices_section">

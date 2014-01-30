@@ -108,13 +108,12 @@ app.PlayerView = Backbone.View.extend({
 			}
 		}
 		if(typeof amount != 'undefined' && amount != 0){
-			this.model.set("balance", this.model.get("balance")+amount);
-			if(amount > 0){
+			if(status != OVERALL_GAINS_LOSSES)
+				this.model.set("balance", this.model.get("balance")+amount);
+			if(amount > 0)
 				amount = "<p class='green'>(+$"+amount+")</p>";
-			}
-			else {
+			else
 				amount = "<p class='red'>(-$"+(-amount)+")</p>";
-			}
 		}
 		else {
 			amount = "";
@@ -126,6 +125,7 @@ app.PlayerView = Backbone.View.extend({
 			avatar: this.model.get("avatar"),
 			recentChange: amount
 		}));
+		// warn player that if their balance is too low at start of next hand, they'll be kicked off table
 	},
 	
 	renderHand: function(){

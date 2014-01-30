@@ -21,4 +21,4 @@
 //= require backbone/poker
 //= require_tree .
 //= require websocket_rails/main
-
+//= require bootbox.min

@@ -42,7 +42,7 @@ class Table
 	@@tables = []
 	@@count = 0
 	
-	attr_reader :stakes, :id, :seats, :ais, :players, :results, :min_table_balance, :status, :next_showdown_time
+	attr_reader :stakes, :id, :seats, :ais, :players, :results, :min_table_balance, :status, :next_showdown_time, :unique_id
 	
   def initialize(stakes=DEFAULT_STAKES, seats=DEFAULT_SEATS, ais=DEFAULT_AIS)
 		
@@ -51,6 +51,7 @@ class Table
 		
     @stakes=stakes
 		@id = @@count
+		@unique_id = ((Time.now.to_i.to_s)+(rand(100000).to_s)).to_i
 		@seats = seats
 		@players = []
 		
@@ -89,8 +90,12 @@ class Table
 		return Player.new("Empty", self, 0, seat, true)
 	end
 	
-	def new_human(user, seat)
-		return Player.new(user, self, user.balance, seat)
+	def new_human(user, seat, buy_in=user.balance)
+		if(user.balance < buy_in)
+			return false
+		else
+			return Player.new(user, self, buy_in, seat)
+		end
 	end
 	
 	def fill_seats_with(what = "AIs")
@@ -112,12 +117,16 @@ class Table
 		return false
 	end
 	
-	def add_human user
+	def add_human(user, amount)
 		index=0
 		@seats.times do |seat|
 			if !@players[seat] or @players[seat].empty? or @players[seat].is_AI?
-				@players[index] = new_human(user, index)
-				return true
+				new_player = new_human(user, index, amount)
+				if(new_player)
+					@players[index] = new_player
+					return true
+				end
+				return false
 			end
 		end
 		return false
@@ -143,13 +152,27 @@ class Table
 		return false
 	end
 	
-	def add_to_queue(user)
+	def in_queue?(user)
+		@join_queue.each do | waiter |
+			if waiter[:user] == user
+			  return true
+			end
+		end
+		return false
+	end
+	
+	def add_to_queue(user, amount)
+		amount = amount.to_i
 		if on_table?(user)
 			return "You are already on the table."
-		elsif @join_queue.include? user
-			return "YOu are already in the queue."
+		elsif user.balance < amount
+			return "You do not have sufficient balance to join the table any more."
+		elsif amount < @min_table_balance
+			return "That is not enough to play at this table."
+		elsif in_queue? user
+			return "You are already in the queue."
 		else
-			@join_queue.push(user)
+			@join_queue.push( {user: user, amount: amount} )
 			return "You have joined the queue. New players are added at the start of every hand."
 		end
 	end
@@ -159,8 +182,8 @@ class Table
 			return "Goodbye guest!"
 		end
 		player = nil
-		if @join_queue.include? user
-			@join_queue-=[user]
+		if in_queue? user
+			@join_queue.delete_if { |player| player[:user] == user }
 			return "You have removed yourself from the queue to join the table."
 		elsif @leave_queue.include? user
 			return "You will already leave the table after this hand."
@@ -197,29 +220,7 @@ class Table
 		# for some statuses, need extra action
 		case @status
 			when WAITING_TO_START
-				@leave_queue.concat @players.dup.keep_if(&:kick_off_for_inactivity?).map(&:user)
-				@leave_queue.each do |user|
-					player = player_object(user)
-					seat = player.seat
-					player.leave_table
-					if @join_queue.size > 0
-						@players[seat]=new_human(@join_queue.shift, seat)
-					else
-						@players[seat]= @ais? new_ai(seat) : new_empty_seat(seat)
-					end
-					@leave_queue -= [user]
-				end
-				@join_queue.each do |user|
-					if on_table? user
-						@join_queue -= [user]
-					else
-						if add_human user
-							@join_queue -= [user]
-						else
-							break
-						end
-					end
-				end
+				insert_remove_players
 			when DEALING
 				if enough_players?
 					deal
@@ -592,6 +593,16 @@ class Table
 		return nil;
 	end
 	
+	def Table.find_by_unique_id(id)
+		id=id.to_i
+		@@tables.each do |table|
+			if table.unique_id == id
+				return table
+			end
+		end
+		return nil;
+	end
+	
 	def Table.find_empty_table(stakes=DEFAULT_STAKES, seats=DEFAULT_SEATS, ais=DEFAULT_AIS)
 		@@tables.each do |table|
 			if table.stakes == stakes and seats == table.seats and ais == table.ais and !table.full?
@@ -602,6 +613,42 @@ class Table
 	end
 	
 	# other
+	
+	def insert_remove_players
+		@players.each do |player|
+			if player.kick_off_for_inactivity? || player.balance < @min_table_balance
+				@leave_queue.push player.user
+			end
+		end
+		@leave_queue.uniq!
+		@join_queue.delete_if do |player|
+			player[:user].balance < @min_table_balance
+		end
+		@leave_queue.each do |user|
+			player = player_object(user)
+			next if !player
+			seat = player.seat
+			player.leave_table
+			if @join_queue.size > 0
+				joiner = @join_queue.shift
+				@players[seat]= new_human(joiner[:user], seat, joiner[:amount])
+			else
+				@players[seat]= @ais? new_ai(seat) : new_empty_seat(seat)
+			end
+			@leave_queue -= [user]
+		end
+		@join_queue.each do |player|
+			if on_table? player[:user]
+				@join_queue.delete_if { |player| player[:user] == player[:user]}
+			else
+				if add_human(player[:user], player[:amount])
+					@join_queue.delete_if { |player| player[:user] == player[:user]}
+				else
+					break
+				end
+			end
+		end
+	end
 	
 	def player_object(user)
 		@players.each do |p|

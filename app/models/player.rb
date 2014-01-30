@@ -1,6 +1,6 @@
 class Player
 
-	attr_reader :is_AI, :user, :name, :avatar, :hand, :seat, :invalid, :hands_sat_out, :ready_for_showdown
+	attr_reader :is_AI, :user, :name, :avatar, :hand, :seat, :invalid, :hands_sat_out, :ready_for_showdown, :balance
 	attr_accessor :in_current_hand, :sitting_out, :folded, :rankings, :invalid
 
 	def initialize(player="AI", table=nil, balance=1000, seat=0, empty=false)
@@ -41,6 +41,8 @@ class Player
 			@in_current_hand=true
 			@sitting_out = false
 			@ready_for_showdown = false
+			@user.update_attribute(:balance, @user.balance - @balance)
+			update_table_attribute
 		end
 	end
 	
@@ -103,12 +105,13 @@ class Player
 	
 	def change_balance(amount)
 		@balance+=amount
+		if human?
+			update_table_attribute
+		end
 		if @balance < @table.min_table_balance
-			if @is_AI
+			if is_AI?
 				@balance+=@table.min_table_balance
 				#message table that AI has been busted
-			else
-			# kick off table
 			end
 		end
 	end
@@ -117,11 +120,20 @@ class Player
 		change_balance(@rankings[which_hand][what_type])
 	end
 	
+	def update_table_attribute
+		table_balance = @user.table_balance
+		table_balance[@table.unique_id] = @balance
+		@user.update_attribute(:table_balance, table_balance)
+	end
+	
 	def leave_table
-		@table=nil
 		if human?
-			# @user.update_balance / @user.save
+			table_balance = @user.table_balance
+			table_balance.delete(@table.unique_id)
+			@user.update_attribute(:balance, @user.balance+@balance);
+			@user.update_attribute(:table_balance, table_balance);
 		end
+		@table=nil
 	end
 	
 	def new_hand_started

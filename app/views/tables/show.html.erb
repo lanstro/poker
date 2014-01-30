@@ -91,9 +91,7 @@
 	<script type = "text/template" id="utility_buttons_template">
 		<ul>
 			<li id="join">	
-				<%= form_for(@table, :url => join_table_path, :html=> {:method => :post}, remote: true ) do |f| %>
-					<%= f.submit("Join table", {class: "btn btn-large btn-primary menu_button"}) %>
-				<% end %>
+				<input class="btn btn-large btn-primary menu_button" value="Buy in" type = "submit">
 			</li>
 			<li id="leave">	
 				<%= form_for(@table, :url => leave_table_path, :html=> {:method => :post}, remote: true ) do |f| %>

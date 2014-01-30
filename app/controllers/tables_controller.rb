@@ -18,13 +18,26 @@ class TablesController < ApplicationController
 
   def show
 		@table = Table.find_by_id(params[:id])
+		user = current_user
+		if(user)
+			table_balance = user.table_balance
+			if table_balance.size > 0
+				table_balance.each do |unique_id, amount|
+					if !Table.find_by_unique_id(unique_id) #somehow the user has balance stuck on a table that bugged out
+						user.update_attribute(:balance, user.balance+amount);
+						table_balance.delete(unique_id)
+						user.update_attribute(:table_balance, table_balance);
+					end
+				end
+			end
+		end
   end
 
   def join
 		@table = Table.find_by_id(params[:id])
-		@response = @table.add_to_queue(current_user)
+		response = @table.add_to_queue(current_user, params[:amount])
 		respond_to do |format|
-			format.json { render :json => { :response => @response }}
+			format.json { render :json => response }
 		end
   end
 
@@ -89,15 +102,16 @@ class TablesController < ApplicationController
 		end
 	end
 	
-	def in_hand
+	def join_table_details
 		@table = Table.find_by_id(params[:id])
-		if @table.player_object(current_user)
-			response = true
+		user = current_user
+		if user
+			result = { logged_in: true, balance: user.balance, table_balance: user.table_balance.values.sum, min_table_balance:  @table.min_table_balance }
 		else
-			response = false
+			result = false
 		end
 		respond_to do |format|
-			format.json { render :json => { in_hand: response } }
+			format.json { render :json => result }
 		end
 	end
 	

@@ -19,6 +19,7 @@ Poker::Application.routes.draw do
 			post 'ready'
 			post 'fold'
 			post 'sitout'
+			get 'join_table_details'
 		end
 	end
 	

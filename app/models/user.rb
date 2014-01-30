@@ -10,8 +10,11 @@
 #  created_at :datetime        not null
 #  updated_at :datetime        not null
 #	 admin			:boolean
+#  table_balance :text     (serializes to hash)
 
 class User < ActiveRecord::Base
+
+	serialize :table_balance, Hash
 
   validates :name, presence: true, 
 									 length: {maximum: 15, minimum: 3}, 
@@ -29,6 +32,9 @@ class User < ActiveRecord::Base
 		end
 		if user.avatar == nil
 			user.avatar = 1+rand(10)
+		end
+		if user.table_balance==nil
+			user.table_balance=Hash.new(0)
 		end
 	end
 	
