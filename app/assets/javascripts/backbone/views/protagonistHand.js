@@ -102,7 +102,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 		var status = app.statusModel.get("status");
 		this.$el.empty();
 		
-		// somewhere else - if hand is folded/invalid, needs to reset collection
+		// somewhere else - if it's beyond folders_notification, use the playersInfo arrangement instead
 		
 		if(this.collection.models.length === 0 || status < DEALING || status > BACK_HAND_SUGAR){
 			this.renderRow([false, false, false]);
@@ -179,13 +179,11 @@ app.ProtagonistHandView = Backbone.View.extend({
 	switchCards: function(a, b){
 		var aPosition = a.get('position'),
 				aRow      = a.get('row');
-		a.set({ position: b.get('position'), row: b.get('row') });
-		b.set({ position: aPosition, row: aRow });
+		a.set({ position: b.get('position'), row: b.get('row'), highlighted: false });
+		b.set({ position: aPosition, row: aRow, highlighted: false });
 	},
 	
 	swapCards: function(){
-		
-		console.log("swapCards called");
 		
 		var grid = [ [], [], [] ];
 		var count = {0: 0, 1:0, 2:0};
@@ -201,53 +199,64 @@ app.ProtagonistHandView = Backbone.View.extend({
 			}
 		});
 		
-		console.log("count: "+JSON.stringify(count));
-		console.log("grid: "+JSON.stringify(grid));
-		
-		var highest = 0, longerRow = null, shorterRow = null, tooLong=false;
+		var highest = 1, lower = 1, longerRow = null, shorterRow = null, tooLong=false;
 		
 		_.each(count, function(val, key){
 			
-			if(val > highest){
+			if(val >= lower){
 				if(shorterRow){
-					console.log("too many rows highlighted");
 					tooLong=true;
-					return; // too many rows highlighted
+					return
 				}
-				shorterRow = longerRow;
-				longerRow = key;
+				if(val >= highest){
+					highest=val;
+					shorterRow = longerRow;
+					longerRow = key;
+				}
+				else {
+					shorter = val;
+					shorterRow = key;
+				}
 			}
 		});
 		
 		if(tooLong || !shorterRow){
-			console.log("wrong number of rows");
-			return; // too many rows highlighted
+			this.collection.each(function(card){
+				if(card.get("highlighted")){
+					card.set({ highlighted: false });
+				}
+			});
+			return; 
 		}
-		
-		
-		console.log("longer row is "+longerRow);
-		console.log("shorter row is "+shorterRow);
 
 		_.each(grid[longerRow], function(card){
 			if(card != "taken" && card.get("highlighted")){
-				console.log("need to move "+card.get("human_description"));
-/*  		var swapee = findHighlighted(grid[shorterRow]);
-				if(swapee){
+				var swapee = _.find(grid[shorterRow], function(card){
+					if(card != null && typeof card != 'undefined' && card != "taken" && card.get("highlighted")){
+						return true;
+					}
+				});
+				if(typeof swapee != 'undefined'){
 					this.switchCards(card, swapee);
+					grid[shorterRow][card.get("position")]="taken";
+					return;
 				}
-				else {
-					var coords = findBlank(grid[shorterRow]);
-					if(coords){
-						card.set coords to coords
+				else{
+					var position = _.find([0, 1, 2, 3, 4, 5, 6, 7], function(position){
+						return grid[shorterRow][position] == null || grid[shorterRow][position] == undefined;
+					});
+					if(typeof position != 'undefined'){
+						card.set( {row: parseInt(shorterRow), position: position, highlighted: false});
+						grid[shorterRow][position]="taken";
+						return;
 					}
 					else {
-						break;
+						card.set({highlighted: false});
 					}
 				}
-*/
 			}
-		});
-		// this.render();
+		}, this);
+		this.render();
 	},
 	
 	handDealt: function(cards){

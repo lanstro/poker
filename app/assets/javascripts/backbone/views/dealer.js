@@ -120,6 +120,7 @@ app.DealerView = Backbone.View.extend({
 				break;
 			case FRONT_HAND_WINNER_ANNOUNCE:
 				msg = this.winnerAnnounce(FRONT_HAND)+" See message log for further details";
+				//this.allHandsAnnounce(FRONT_HAND);
 				break;
 			case FRONT_HAND_SUGAR:
 				msg = this.sugarAnnounce(FRONT_HAND);
@@ -129,6 +130,7 @@ app.DealerView = Backbone.View.extend({
 				break;
 			case MID_HAND_WINNER_ANNOUNCE:
 				msg = this.winnerAnnounce(MID_HAND)+" See message log for further details";
+				//this.allHandsAnnounce(MID_HAND);
 				break;
 			case MID_HAND_SUGAR:
 				msg = this.sugarAnnounce(MID_HAND);
@@ -138,6 +140,7 @@ app.DealerView = Backbone.View.extend({
 				break;
 			case BACK_HAND_WINNER_ANNOUNCE:
 				msg = this.winnerAnnounce(BACK_HAND)+" See message log for further details";
+				//this.allHandsAnnounce(BACK_HAND);
 				break;
 			case BACK_HAND_SUGAR:
 				msg = this.sugarAnnounce(BACK_HAND);
@@ -207,6 +210,25 @@ app.DealerView = Backbone.View.extend({
 			return winners.slice(0, winners.length - 1).join(', ') + " and " + winners.slice(-1) + " tie for first with "+handDescription+"."
 		}
 		return "";
+	},
+	
+	allHandsAnnounce: function(whichHand){
+		var winners = [], handDescription = "", handAnnouncements=[];
+		for(var i=0; i < app.playerInfoCollection.size(); i++){
+			app.playerInfoCollection.each(function(player){
+				if(winners.get("rankings")[whichHand]["rank"] === i){
+					winners.push(player.get("name"));
+					handDescription = player.get("arrangement")[whichHand]["human_name"];
+				}
+			});
+			if(winners.length === 1){
+				handAnnouncements.push( winners[0]+" comes "+["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"][i]+" with "+handDescription+".");
+			}
+			else {
+				handAnnouncements.push( winners.slice(0, winners.length - 1).join(', ') + " and " + winners.slice(-1) + " tie for "+["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"][i]+" with "+handDescription+".");
+			}
+		}
+		console.log(handAnnouncements);
 	},
 	
 	sugarAnnounce: function(whichHand){

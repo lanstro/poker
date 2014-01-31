@@ -1,6 +1,8 @@
 todo:
 
-- swap button
+- humans kicking other humans off
+- jquery latest version?
+- chrome graphics jumping
 - drag & drop for card sorting
 - describe everyone's hands in the message box
 - popup messages for:
