@@ -2,8 +2,9 @@ var app = app || {};
 
 app.DealerView = Backbone.View.extend({
 	el: '#announcements',
-	model: new app.Dealer(),
 	initialize: function(){
+		
+		this.model = app.statusModel;
 		this.model.url =$("#table").data("table_id")+'/status';
 		this.model.fetch();
 		
@@ -96,7 +97,7 @@ app.DealerView = Backbone.View.extend({
 			app.pubSub.trigger("dealerMessage", {user: "Dealer", broadcast: this.correct_message()});
 		}
 		if(data.status === DEALING){
-			// check whether we're on the table now
+			// check whether we're on the table now, refresh queue/leaving properties
 			this.model.fetch();
 		}
 		if(data.status === WAITING_FOR_CARD_SORTING || data.status === ALMOST_SHOWDOWN){
@@ -199,7 +200,7 @@ app.DealerView = Backbone.View.extend({
 	
 	foldersInvalidsDescription: function(foldedOrInvalid){
 		var players = [], msg = "";
-		app.playerInfo().each(function(player){
+		app.playerInfoCollection.each(function(player){
 			if (player.get(foldedOrInvalid)){
 				players.push(player.get("name"));
 			}
@@ -227,7 +228,7 @@ app.DealerView = Backbone.View.extend({
 	
 	winnerAnnounce: function(whichHand){
 		var winners = [], handDescription = "";
-		app.playerInfo().each(function(player){
+		app.playerInfoCollection.each(function(player){
 			if(player.get("rankings")[whichHand]["rank"] === 1){
 				winners.push(player.get("name"));
 				handDescription = player.get("arrangement")[whichHand]["human_name"];
@@ -244,7 +245,7 @@ app.DealerView = Backbone.View.extend({
 	
 	sugarAnnounce: function(whichHand){
 		var winner = "", amount = 0, contribution = 0;
-		app.playerInfo().each(function(player){
+		app.playerInfoCollection.each(function(player){
 			amount = player.get("rankings")[whichHand]["sugars"];
 			if( amount > 0){
 				winner = player.get("name");

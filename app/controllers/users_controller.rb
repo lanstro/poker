@@ -32,6 +32,18 @@ class UsersController < ApplicationController
 	
 	def show
 		@user = User.find(params[:id])
+		if(@user)
+			table_balance = @user.table_balance
+			if table_balance.size > 0
+				table_balance.each do |unique_id, amount|
+					if !Table.find_by_unique_id(unique_id) #somehow the user has balance stuck on a table that bugged out
+						@user.update_attribute(:balance, @user.balance+amount);
+						table_balance.delete(unique_id)
+						@user.update_attribute(:table_balance, table_balance);
+					end
+				end
+			end
+		end
 	end
 	
 	def edit

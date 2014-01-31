@@ -15,18 +15,13 @@ Poker::Application.routes.draw do
 			post 'post_protagonist_cards'
 			get 'status'
 			post 'join'
-			post 'leave'
-			post 'ready'
-			post 'fold'
-			post 'sitout'
+			get 'leave'
+			get 'ready'
+			get 'fold'
+			get 'sitout'
 			get 'join_table_details'
 		end
 	end
-	
-	#get  'tables/:id/players_info' => 'tables#players_info'
-	#get  'tables/:id/protagonist_cards' => 'tables#protagonist_cards'
-	#post 'tables/:id/post_protagonist_cards' => 'tables#post_protagonist_cards'
-	#get  'tables/:id/status' => 'tables#status'
 	
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".

@@ -129,7 +129,7 @@ app.PlayerView = Backbone.View.extend({
 	},
 	
 	renderHand: function(){
-		var status= app.status();
+		var status= app.statusModel.get("status");
 		this.$cards.empty();
 		if( !this.model.get("in_current_hand")){
 			this.$cards.html("<p>(Sitting out)</p>");
@@ -176,7 +176,7 @@ app.PlayerView = Backbone.View.extend({
 	
 	renderHandRanking: function(newStatus){
 		this.$handRanking.empty();
-		newStatus = typeof newStatus == 'undefined'? app.status() : newStatus;
+		newStatus = typeof newStatus == 'undefined'? app.statusModel.get("status") : newStatus;
 		var rank = 0;
 		switch(newStatus){
 			case FRONT_HAND_WINNER_ANNOUNCE:

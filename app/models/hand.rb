@@ -30,6 +30,8 @@ class Hand
 	def hand_valid
 		if !@owner or @owner.is_AI?
 			auto_arrange
+		elsif @owner.human? and @owner.folded
+			return true
 		elsif !@arranged and @owner.human?
 			@owner.sitting_out = true
 			auto_arrange

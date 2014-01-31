@@ -4,7 +4,7 @@ app.OpponentsView = Backbone.View.extend({
 	el: '#opponents',
 
 	initialize: function(){
-		var col = new app.Opponents();
+		var col = app.playerInfoCollection;
 		this.collection= col;
 		this.subViews = [];
 		

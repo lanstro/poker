@@ -1,14 +1,14 @@
 todo:
 
-- utility buttons contextual
-- popup messages for:
-	- replies to posts
-	- warning that balance too low
-	- welcome/farewell from table
 - your own scores at bottom
 - swap button
 - drag & drop for card sorting
 - describe everyone's hands in the message box
+- popup messages for:
+	- warning that balance too low
+	- welcome/farewell from table
+	- forced into sitting out
+- fix trailing slashes
 
 - better message log - indentation, coloring
 - layout collapsing in invalids/folders notification

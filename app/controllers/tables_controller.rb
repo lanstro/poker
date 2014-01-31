@@ -43,27 +43,26 @@ class TablesController < ApplicationController
 
   def leave
 		@table = Table.find_by_id(params[:id])
-		@response = @table.leave_table(current_user)
 		respond_to do |format|
-			format.json { render :json => { :response => @response }}
+			format.json { render :json => @table.leave_table(current_user)}
 		end
   end
 
   def ready
 		respond_to do |format|
-			format.json { render :json => { :response => Table.find_by_id(params[:id]).ready(current_user) }}
+			format.json { render :json => Table.find_by_id(params[:id]).ready(current_user) }
 		end
   end
 
   def fold
 		respond_to do |format|
-			format.json { render :json => { :response => Table.find_by_id(params[:id]).fold(current_user) }}
+			format.json { render :json => Table.find_by_id(params[:id]).fold(current_user) }
 		end
   end
 
 	def sitout
 		respond_to do |format|
-			format.json { render :json => { :response => Table.find_by_id(params[:id]).sitout(current_user) }}
+			format.json { render :json => Table.find_by_id(params[:id]).sitout(current_user) }
 		end
 	end
 	
@@ -93,9 +92,9 @@ class TablesController < ApplicationController
 		@table = Table.find_by_id(params[:id])
 		player = @table.player_object(current_user)
 		if(player)
-			result = { status: @table.status, next_showdown_time: @table.next_showdown_time,  in_hand: true, seat: player.seat}
+			result = { status: @table.status, next_showdown_time: @table.next_showdown_time,  in_hand: true, seat: player.seat, folded: player.folded, in_join_queue: @table.in_queue?(current_user), in_leave_queue: @table.leave_queue.include?(current_user), folded: player.folded, ready_for_showdown: player.ready_for_showdown, sitting_out: player.sitting_out }
 		else
-			result = { status: @table.status, next_showdown_time: @table.next_showdown_time,  in_hand: false, seat: nil}
+			result = { status: @table.status, next_showdown_time: @table.next_showdown_time,  in_hand: false, seat: nil, folded: nil, in_join_queue: @table.in_queue?(current_user), in_leave_queue: @table.leave_queue.include?(current_user), folded: nil, ready_for_showdown: nil, sitting_out: nil}
 		end
 		respond_to do |format|
 			format.json { render :json =>  result}

@@ -18,11 +18,12 @@ app.ProtagonistHandView = Backbone.View.extend({
 		//this.listenTo(app.pubSub, "protagonistHandRendered", this.recalcHands);
 		this.listenTo(app.pubSub, "statusChanged", this.statusChanged);
 		this.listenTo(app.pubSub, "swapCards", this.swapCards);
+		this.listenTo(app.statusModel, "change:folded", this.folded);
 	},
 
 	blankClicked: function(row, position){
-	
-		if(app.status() < DEALING || app.status() > ALMOST_SHOWDOWN){
+		status = app.statusModel.get("status");
+		if(status < DEALING || status > ALMOST_SHOWDOWN){
 			return;
 		}
 	
@@ -94,7 +95,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 	
 	render: function(){
 	
-		var status = app.status();
+		var status = app.statusModel.get("status");
 		this.$el.empty();
 		
 		if(this.collection.models.length === 0 || status < DEALING || status > BACK_HAND_SUGAR){
@@ -230,6 +231,13 @@ app.ProtagonistHandView = Backbone.View.extend({
 		}
 		return true;
 	},
+	
+	folded: function(data){
+		if(data.get("folded") == true){
+			this.collection.reset();
+			this.render();
+		}
+	}
 
 	/*
 	eventTracker: function(arg1, arg2){

@@ -32,7 +32,7 @@ app.CardView = Backbone.View.extend({
 	
 	toggleHighlight: function(obj){
 	
-		if(app.status() < DEALING || app.status() > ALMOST_SHOWDOWN){
+		if(app.statusModel.get("status") < DEALING || app.statusModel.get("status") > ALMOST_SHOWDOWN){
 			return;
 		}
 	

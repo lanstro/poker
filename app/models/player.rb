@@ -64,9 +64,9 @@ class Player
 	def sitout
 		@sitting_out = !@sitting_out
 		if @sitting_out
-			return "You sit out of the next hand.  You will be removed after 3 hands of inactivity."
+			return {response: "You sit out of the next hand.  You will be removed after 3 hands of inactivity.", sitting_out: @sitting_out}
 		else
-			return "You will be dealt into the next hand."
+			return {response: "You will be dealt into the next hand.", sitting_out: @sitting_out}
 		end
 	end
 	

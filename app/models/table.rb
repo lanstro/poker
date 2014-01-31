@@ -42,7 +42,7 @@ class Table
 	@@tables = []
 	@@count = 0
 	
-	attr_reader :stakes, :id, :seats, :ais, :players, :results, :min_table_balance, :status, :next_showdown_time, :unique_id
+	attr_reader :stakes, :id, :seats, :ais, :players, :results, :min_table_balance, :status, :next_showdown_time, :unique_id, :leave_queue
 	
   def initialize(stakes=DEFAULT_STAKES, seats=DEFAULT_SEATS, ais=DEFAULT_AIS)
 		
@@ -164,35 +164,36 @@ class Table
 	def add_to_queue(user, amount)
 		amount = amount.to_i
 		if on_table?(user)
-			return "You are already on the table."
+			return {response: "You are already on the table.", in_join_queue: false}
 		elsif user.balance < amount
-			return "You do not have sufficient balance to join the table any more."
+			return {response: "You do not have sufficient balance to join the table any more.", in_join_queue: false}
 		elsif amount < @min_table_balance
-			return "That is not enough to play at this table."
+			return {response: "That is not enough to play at this table.", in_join_queue: false}
 		elsif in_queue? user
-			return "You are already in the queue."
+			return {response: "You are already in the queue.", in_join_queue: false}
 		else
 			@join_queue.push( {user: user, amount: amount} )
-			return "You have joined the queue. New players are added at the start of every hand."
+			return {response: "You have joined the queue. New players are added at the start of every hand.", in_join_queue: true}
 		end
 	end
 	
 	def leave_table(user)
 		if !user
-			return "Goodbye guest!"
+			return {in_leave_queue: false, response: "Goodbye guest!"}
 		end
 		player = nil
 		if in_queue? user
 			@join_queue.delete_if { |player| player[:user] == user }
-			return "You have removed yourself from the queue to join the table."
+			return {in_leave_queue: false, response: "You have removed yourself from the queue to join the table."}
 		elsif @leave_queue.include? user
-			return "You will already leave the table after this hand."
+			@leave_queue -= [user]
+			return {in_leave_queue: false, response: "You have cancelled your request to leave the table."}
 		end
 		if !(player_object user)
-			return "Goodbye observer!"
+			return {in_leave_queue: false, response: "Goodbye observer!"}
 		end
 		@leave_queue += [user]
-		return "You will be removed from the table at the end of the hand."
+		return {in_leave_queue: true, response: "You will be removed from the table at the end of the hand."}
 	end
 	
 	#scheduler
@@ -235,6 +236,7 @@ class Table
 				showdown(BACK_HAND)
 				calculate_overall_sugar
 			when FOLDERS_NOTIFICATION
+				payout(:hand, FOLDERS_INDEX)
 				if players_in_hand.size < 2
 					@status = NOT_ENOUGH_PLAYERS
 				end
@@ -467,7 +469,7 @@ class Table
 	def sitout(user)
 		player = player_object(user)
 		if !player
-			return "You are not on the table."
+			return {response: "You are not on the table.", sitting_out: nil}
 		else
 			return player.sitout
 		end
@@ -477,15 +479,15 @@ class Table
 	
 	def ready_or_fold_checks(player)
 		if !player
-			return "You are not in the hand."
+			return {response: "You are not in the hand.", folded: nil, ready_for_showdown: nil}
 		elsif !player.in_current_hand
-			return "You are not in the hand."
+			return {response: "You are not in the hand.", folded: nil, ready_for_showdown: nil}
 		elsif player.folded
-			return "You have already folded."
+			return {response: "You have already folded.", folded: true, ready_for_showdown: true}
 		elsif @status < DEALING
-			return "You don't even have your cards yet!"
+			return {response: "You don't even have your cards yet!", folded: false, ready_for_showdown: false}
 		elsif @status >= SHOWDOWN_NOTIFICATION
-			return "Too late.  It's already showdown time."
+			return {response: "Too late.  It's already showdown time.", folded: false, ready_for_showdown: false}
 		else
 			return false
 		end
@@ -507,7 +509,7 @@ class Table
 		else
 			response = player.ready
 			check_early_showdown
-			return response
+			return {response: response, folded: false, ready_for_showdown: player.ready_for_showdown}
 		end
 	end
 	
@@ -519,7 +521,7 @@ class Table
 		else
 			player.muck
 			check_early_showdown
-			return "You have folded."
+			return {response: "You have folded.", folded: true, ready_for_showdown: true}
 		end
 	end
 	
