@@ -32,6 +32,7 @@ class Player
 			@in_current_hand=false
 			@sitting_out = true
 			@ready_for_showdown = true
+			@empty = true
 		else
 			@is_AI=false
 			@user=player

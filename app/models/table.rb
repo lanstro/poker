@@ -36,7 +36,7 @@ class Table
 	OVERALL_SUGAR = 17
 	OVERALL_GAINS_LOSSES = 18
 						 
-	NOTIFICATIONS_DELAY      = [4, 2, 40,  10,  4, 2, 2, 2, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3, 2, 10]
+	NOTIFICATIONS_DELAY      = [4, 2, 3,  3,  4, 2, 2, 2, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3, 2, 10]
 	NOTIFICATIONS_DELAY_TEST = [4, 2, 2,   2,   4, 2, 2, 2, 2,  3, 3, 2, 3,  3, 3, 2,  3, 3, 3, 2, 10]
 	
 	@@tables = []
@@ -120,7 +120,9 @@ class Table
 	def add_human(user, amount)
 		index=0
 		@seats.times do |seat|
+			puts "checking seat "+seat.to_s
 			if !@players[seat] or @players[seat].empty? or @players[seat].is_AI?
+				puts "adding human to seat "+seat.to_s
 				new_player = new_human(user, index, amount)
 				if(new_player)
 					@players[index] = new_player
