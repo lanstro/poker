@@ -1,7 +1,7 @@
 class Player
 
-	attr_reader :is_AI, :user, :name, :avatar, :hand, :seat, :invalid, :hands_sat_out, :ready_for_showdown, :balance
-	attr_accessor :in_current_hand, :sitting_out, :folded, :rankings, :invalid
+	attr_reader :is_AI, :user, :name, :avatar, :hand, :seat, :invalid, :hands_sat_out, :ready_for_showdown, :balance, :invalid
+	attr_accessor :in_current_hand, :sitting_out, :folded, :rankings
 
 	def initialize(player="AI", table=nil, balance=1000, seat=0, empty=false)
 		# need to implement auto sitting out after inactivity
@@ -58,7 +58,11 @@ class Player
 	
 	def ready
 		@ready_for_showdown = !@ready_for_showdown
-		return "You are now "+(@ready_for_showdown? "ready":"not ready")+" for the showdown"
+		if @ready_for_showdown
+			return "You are ready for the showdown.  If you change your mind, make sure to cancel ready, otherwise showdown while you're arranging!"
+		else
+			return "You are no longer ready for the showdown"
+		end
 	end
 	
 	def sitout
@@ -117,7 +121,9 @@ class Player
 	end
 	
 	def payout(what_type, which_hand)
-		change_balance(@rankings[which_hand][what_type])
+		if @rankings[which_hand][what_type]
+			change_balance(@rankings[which_hand][what_type])
+		end
 	end
 	
 	def update_table_attribute
@@ -145,6 +151,11 @@ class Player
 		@invalid = false
 		@folded = false
 		@ready_for_showdown = false
+		@hand.arranged = false
+	end
+	
+	def is_invalid?
+		return @invalid = @hand.is_invalid?
 	end
 	
 	def external_info(cards_public)

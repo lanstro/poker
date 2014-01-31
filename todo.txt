@@ -1,6 +1,5 @@
 todo:
 
-- your own scores at bottom
 - swap button
 - drag & drop for card sorting
 - describe everyone's hands in the message box

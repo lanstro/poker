@@ -14,8 +14,8 @@ app.PlayerView = Backbone.View.extend({
 		this.dashboardTemplate= _.template($('#opponent_dashboard_template').html());
 		this.handRankingTemplate = _.template($('#hand_ranking_button_template').html());
 		
-		this.listenToOnce(app.pubSub, "statusChanged", this.render);
-		this.listenTo(app.pubSub, "statusChanged", this.statusChanged);
+		this.listenToOnce(app.statusModel, "change:status", this.render);
+		this.listenTo(app.statusModel, "change:status", this.statusChanged);
 	},
 
 	render: function(){
@@ -34,7 +34,8 @@ app.PlayerView = Backbone.View.extend({
 		return this;
 	},
 	
-	statusChanged: function(newStatus){
+	statusChanged: function(data){
+		var newStatus = data.get("status");
 		switch (newStatus){
 			case DEALING:
 			case WAITING_TO_START:
@@ -108,8 +109,9 @@ app.PlayerView = Backbone.View.extend({
 			}
 		}
 		if(typeof amount != 'undefined' && amount != 0){
-			if(status != OVERALL_GAINS_LOSSES)
+			if(status != OVERALL_GAINS_LOSSES){
 				this.model.set("balance", this.model.get("balance")+amount);
+			}
 			if(amount > 0)
 				amount = "<p class='green'>(+$"+amount+")</p>";
 			else

@@ -5,6 +5,7 @@ app.ChatView = Backbone.View.extend({
 	initialize: function(){
 		this.render();
 		this.listenTo(app.pubSub, "dealerMessage", this.addMessage);
+		this.listenTo(app.pubSub, "messageReceived", this.addMessage);
 		this.setupDispatcher();
 	},
 	events: {

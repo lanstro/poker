@@ -11,8 +11,8 @@ app.DealerView = Backbone.View.extend({
 		this.nextShowdownTime = null;
 		
 		_.bindAll(this, 'receivedStatus', 'render', 'toggleProtagonistViews');
-		this.listenToOnce(this.model, "sync", this.firstStatus);
 		this.listenTo(this.model, "change:in_hand", this.toggleProtagonistViews);
+		this.listenTo(this.model, "change:status", this.statusChanged);
 		this.setupDispatcher();
 		this.counter=null;
 	},
@@ -34,14 +34,11 @@ app.DealerView = Backbone.View.extend({
 	receivedChat: function(data){
 		app.pubSub.trigger("messageReceived", data);
 	},
-	
-	broadcastStatusChange: function(){
-		app.pubSub.trigger("statusChanged",this.model.get("status"));
-	},
-	
+
 	toggleProtagonistViews: function(){
+	
 		var inHand = this.model.get("in_hand");
-		app.pubSub.trigger("inHandChanged", inHand);
+
 		if(inHand){
 			if(typeof app.d == 'undefined')
 				app.d = new app.ProtagonistHandView();
@@ -58,59 +55,28 @@ app.DealerView = Backbone.View.extend({
 			});
 		}
 	},
-	
-	firstStatus: function(data){
-		status = data.get("status");
-		this.broadcastStatusChange(status);
-		
-		if(this.model.get("in_hand"))
-			this.toggleProtagonistViews();
-		
-		this.render();
-		
+
+	statusChanged: function(data){
+		var newStatus = data.get("status");
 		var msg = this.correct_message();
-		
 		if(msg.length > 0){
 			app.pubSub.trigger("dealerMessage", {user: "Dealer", broadcast: this.correct_message()});
 		}
-		
-		if( status == WAITING_FOR_CARD_SORTING || status == ALMOST_SHOWDOWN){
+		if(newStatus === DEALING){
+			this.model.fetch();
+		}
+		if(newStatus === WAITING_FOR_CARD_SORTING || newStatus === ALMOST_SHOWDOWN){
 			clearInterval(this.counter);
 			this.counter = setInterval(this.render, 1000);
 		}
+		if(newStatus === SEND_PLAYER_INFO)
+			clearInterval(this.counter);
+		
+		this.render();
 	},
 	
 	receivedStatus: function(data){
-		var oldStatus = this.model.get("status");
-
-		if(oldStatus === data.status){
-			return;
-		}
-		
 		this.model.set({status: data.status});
-		this.broadcastStatusChange(data.status);
-		
-		this.render();
-		
-		var msg = this.correct_message();
-		if(msg.length > 0){
-			app.pubSub.trigger("dealerMessage", {user: "Dealer", broadcast: this.correct_message()});
-		}
-		if(data.status === DEALING){
-			// check whether we're on the table now, refresh queue/leaving properties
-			this.model.fetch();
-		}
-		if(data.status === WAITING_FOR_CARD_SORTING || data.status === ALMOST_SHOWDOWN){
-			clearInterval(this.counter);
-			this.counter = setInterval(this.render, 1000);
-		}
-		if((oldStatus < SEND_PLAYER_INFO && data.status >= SEND_PLAYER_INFO) ||
-			 data.status === WAITING_TO_START){
-			// want to update playersInfo at INVALIDS_NOTIFICATION so we can get all the hands/rankings for the hand
-			// and again at the start of a hand to ensure we're still synched up to server
-			app.pubSub.trigger('updatePlayersInfo');
-			clearInterval(this.counter);
-		}
 	},
 	
 	correct_message: function(){

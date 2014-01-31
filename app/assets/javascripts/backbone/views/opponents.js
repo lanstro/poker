@@ -10,41 +10,44 @@ app.OpponentsView = Backbone.View.extend({
 		
 		_.bindAll(this, 'render');
 		
-		this.listenToOnce(col, "sync", this.firstTime);
-		
-		//this.listenTo(col, "all", this.eventTracker);
-		this.listenTo(app.pubSub, "updatePlayersInfo", this.updatePlayersInfo);
+		this.listenTo(app.statusModel, "change:in_hand", this.render);
+		this.listenTo(app.statusModel, "change:status", this.updatePlayersInfo);
 	},
-	
-	firstTime: function(arg){
-		this.render();
-	},
-	
-	eventTracker: function(arg1, arg2){
-		console.log("opponent view's 'all' event called");
-		console.log("event was: "+arg1);
-		if(arg2){
-			var cache=[];
-			console.log("arg2 was "+JSON.stringify(arg2, function(key, value) {
-				if (typeof value === 'object' && value !== null) {
-						if (cache.indexOf(value) !== -1) {
-								// Circular reference found, discard key
-								return;
-						}
-						// Store value in our collection
-						cache.push(value);
-				}
-				return value;
-			}));
-		}
-	},
-	
+
 	render: function(){
 		this.$el.empty();
+		_.each(this.subViews, function(view){
+			view.remove();
+			view.render();
+			delete view;
+		});
+
 		this.subViews = [];
-		this.collection.each(function(player){
-			this.renderOpponent(player);
-		}, this);
+		
+		var seat = null, modulus = null;
+		
+		if(app.statusModel.get("in_hand")){
+			seat = app.statusModel.get("seat");
+			modulus = this.collection.size() % 2;
+			this.collection.each(function(player){
+				if(player.get("seat") != seat && player != this.collection.last()){
+					this.renderOpponent(player);
+				}
+			}, this);
+			if(modulus == 0){
+				this.renderOpponent(this.collection.get(app.statusModel.get("seat")));
+				this.renderOpponent(this.collection.last());
+			}
+			else{
+				this.renderOpponent(this.collection.last());
+				this.renderOpponent(this.collection.get(app.statusModel.get("seat")));
+			}
+		}
+		else{
+			this.collection.each(function(player){
+				this.renderOpponent(player);
+			}, this);		
+		}
 		return this;
 	},
 	
@@ -56,8 +59,9 @@ app.OpponentsView = Backbone.View.extend({
 		this.$el.append(playerView.render().$el);
 	},
 	
-	updatePlayersInfo: function(){
-		this.collection.fetch({update: true});
+	updatePlayersInfo: function(data){
+		if(data.get("status") === SEND_PLAYER_INFO || data.get("status") === WAITING_TO_START)
+			this.collection.fetch({update: true});
 	}
 	
 });

@@ -36,8 +36,8 @@ class Table
 	OVERALL_SUGAR = 17
 	OVERALL_GAINS_LOSSES = 18
 						 
-	NOTIFICATIONS_DELAY      = [4, 2, 30,  10,  2, 2, 2, 2, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3, 2, 10]
-	NOTIFICATIONS_DELAY_TEST = [4, 2, 2,   2,   2, 2, 2, 2, 2,  3, 3, 2, 3,  3, 3, 2,  3, 3, 3, 2, 10]
+	NOTIFICATIONS_DELAY      = [4, 2, 30,  10,  4, 2, 2, 2, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3, 2, 10]
+	NOTIFICATIONS_DELAY_TEST = [4, 2, 2,   2,   4, 2, 2, 2, 2,  3, 3, 2, 3,  3, 3, 2,  3, 3, 3, 2, 10]
 	
 	@@tables = []
 	@@count = 0
@@ -237,7 +237,7 @@ class Table
 				calculate_overall_sugar
 			when FOLDERS_NOTIFICATION
 				payout(:hand, FOLDERS_INDEX)
-				if players_in_hand.size < 2
+				if players_at_showdown.size < 2
 					@status = NOT_ENOUGH_PLAYERS
 				end
 			when FRONT_HAND_WINNER_ANNOUNCE
@@ -289,11 +289,7 @@ class Table
 	end
 	
 	def invalid_hands?
-		temp=players_in_hand
-		temp.keep_if do |player|
-			player.invalid or !player.hand.hand_valid
-		end
-		return temp
+		return players_in_hand.keep_if(&:invalid)
 	end
 	
 	def folders?
@@ -319,11 +315,9 @@ class Table
 	end
 	
 	def muck_invalids
-		invalids = invalid_hands?
-		if invalids.length > 0
-			invalids.each do |invalid|
-				invalid.muck
-				invalid.invalid=true
+		players_at_showdown.each do |player|
+			if player.is_invalid?
+				player.muck
 			end
 		end
 	end
@@ -420,7 +414,7 @@ class Table
 	end
 
 	def payout(what_type, which_hand)
-		players_at_showdown.each do |player|
+		players_in_hand.each do |player|
 			player.payout(what_type, which_hand)
 		end
 	end

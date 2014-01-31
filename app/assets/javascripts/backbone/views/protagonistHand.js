@@ -9,16 +9,19 @@ app.ProtagonistHandView = Backbone.View.extend({
 		this.collection= col;
 
 		_.bindAll(this, 'render', 'recalcHands');
-		//this.listenTo(col, "all", this.eventTracker);
+
 		this.listenTo(col, "sort", this.sorted);
-		this.listenToOnce(app.pubSub, 'statusChanged', this.render);
+		this.listenToOnce(app.statusModel, 'change:status', this.render);
+		this.listenTo(app.statusModel, "change:status", this.statusChanged);
+		this.listenTo(app.statusModel, "change:folded", this.folded);
+		
+		
 		this.listenTo(app.pubSub, "blankClicked", this.blankClicked);
 		this.listenTo(app.pubSub, "sortByVal", this.collection.sortByVal);
 		this.listenTo(app.pubSub, "sortBySuit", this.collection.sortBySuit);
-		//this.listenTo(app.pubSub, "protagonistHandRendered", this.recalcHands);
-		this.listenTo(app.pubSub, "statusChanged", this.statusChanged);
+		
 		this.listenTo(app.pubSub, "swapCards", this.swapCards);
-		this.listenTo(app.statusModel, "change:folded", this.folded);
+		
 	},
 
 	blankClicked: function(row, position){
@@ -70,7 +73,8 @@ app.ProtagonistHandView = Backbone.View.extend({
 		this.render();
 	},
 
-	statusChanged: function(newStatus){
+	statusChanged: function(data){
+		var newStatus = data.get("status");
 		switch (newStatus){
 			case DEALING:
 			case FOLDERS_NOTIFICATION:
@@ -82,7 +86,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 				this.render();
 				break;
 		}
-		if(newStatus == DEALING){
+		if(newStatus === DEALING){
 			this.collection.fetch();
 		}
 		if (newStatus === SHOWDOWN_NOTIFICATION){
@@ -97,6 +101,8 @@ app.ProtagonistHandView = Backbone.View.extend({
 	
 		var status = app.statusModel.get("status");
 		this.$el.empty();
+		
+		// somewhere else - if hand is folded/invalid, needs to reset collection
 		
 		if(this.collection.models.length === 0 || status < DEALING || status > BACK_HAND_SUGAR){
 			this.renderRow([false, false, false]);
@@ -113,7 +119,6 @@ app.ProtagonistHandView = Backbone.View.extend({
 		else if(status >= SHOWING_DOWN_BACK_NOTIFICATION && status <= BACK_HAND_SUGAR){
 			this.renderRow([false, false, true]);
 		}
-		app.pubSub.trigger("protagonistHandRendered");
 		return this;
 	},
 	
@@ -173,18 +178,76 @@ app.ProtagonistHandView = Backbone.View.extend({
 		
 	switchCards: function(a, b){
 		var aPosition = a.get('position'),
-				bPosition = b.get('position'),
-				aRow      = a.get('row'),
-				bRow      = b.get('row');
-		a.set({ position: bPosition, row: bRow });
+				aRow      = a.get('row');
+		a.set({ position: b.get('position'), row: b.get('row') });
 		b.set({ position: aPosition, row: aRow });
 	},
 	
 	swapCards: function(){
-	
+		
 		console.log("swapCards called");
+		
+		var grid = [ [], [], [] ];
+		var count = {0: 0, 1:0, 2:0};
+		
+		this.collection.each(function(card){
+			if(card.get("highlighted")){
+				var row = card.get('row');
+				grid[row][card.get('position')] = card
+				count[row]++;
+			}
+			else {
+				grid[card.get('row')][card.get('position')] = "taken"
+			}
+		});
+		
+		console.log("count: "+JSON.stringify(count));
+		console.log("grid: "+JSON.stringify(grid));
+		
+		var highest = 0, longerRow = null, shorterRow = null, tooLong=false;
+		
+		_.each(count, function(val, key){
+			
+			if(val > highest){
+				if(shorterRow){
+					console.log("too many rows highlighted");
+					tooLong=true;
+					return; // too many rows highlighted
+				}
+				shorterRow = longerRow;
+				longerRow = key;
+			}
+		});
+		
+		if(tooLong || !shorterRow){
+			console.log("wrong number of rows");
+			return; // too many rows highlighted
+		}
+		
+		
+		console.log("longer row is "+longerRow);
+		console.log("shorter row is "+shorterRow);
 
-		this.render();
+		_.each(grid[longerRow], function(card){
+			if(card != "taken" && card.get("highlighted")){
+				console.log("need to move "+card.get("human_description"));
+/*  		var swapee = findHighlighted(grid[shorterRow]);
+				if(swapee){
+					this.switchCards(card, swapee);
+				}
+				else {
+					var coords = findBlank(grid[shorterRow]);
+					if(coords){
+						card.set coords to coords
+					}
+					else {
+						break;
+					}
+				}
+*/
+			}
+		});
+		// this.render();
 	},
 	
 	handDealt: function(cards){
@@ -199,7 +262,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 				descriptions[i] = this.collection.evaluateSubhand(i)["humanName"];
 			}
 		}
-		app.pubSub.trigger("protagonistHandDescriptionsUpdated",  descriptions);
+		//app.pubSub.trigger("protagonistHandDescriptionsUpdated",  descriptions);
 	},
 	
 	handNumbersValid: function(whichHand){
@@ -239,25 +302,5 @@ app.ProtagonistHandView = Backbone.View.extend({
 		}
 	}
 
-	/*
-	eventTracker: function(arg1, arg2){
-		console.log("hand view's 'all' event called");
-		console.log("event was: "+arg1);
-		if(arg2){
-			var cache=[];
-			console.log("arg2 was "+JSON.stringify(arg2, function(key, value) {
-				if (typeof value === 'object' && value !== null) {
-						if (cache.indexOf(value) !== -1) {
-								// Circular reference found, discard key
-								return;
-						}
-						// Store value in our collection
-						cache.push(value);
-				}
-				return value;
-			}));
-		}
-	},
-*/
-	
+
 });

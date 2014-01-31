@@ -3,6 +3,7 @@ class Hand
 	SUGARS = [THREE_OF_A_KIND, 6, FOUR_OF_A_KIND]
 
 	attr_reader :owner, :cards, :arrangement, :table
+	attr_accessor :arranged
 	
   def my_logger
     @@my_logger ||= Logger.new("#{Rails.root}/log/my.log")
@@ -19,46 +20,52 @@ class Hand
 	def muck
 		@cards=[]
 		@arrangement = [{}, {}, {}]
-		@arranged=false
 	end
 	
 	def dealt_card(card)
 		@cards.push card
-		@arranged=false
 	end
 	
-	def hand_valid
+	def is_invalid?
 		if !@owner or @owner.is_AI?
 			auto_arrange
-		elsif @owner.human? and @owner.folded
-			return true
-		elsif !@arranged and @owner.human?
+			evaluate_all_subhands
+			if front_bigger_than_back?
+				return true
+			end
+			return false
+		end
+	
+		if @owner.folded or @cards.size == 0
+			return false
+		end
+
+		if !@arranged
 			@owner.sitting_out = true
 			auto_arrange
-			# message owner that they're sitting out because they're either lagging or have disconnected
+			# player disconnected - make them sit out, and auto arrange this hand for now
+		else
+			if @arrangement[FRONT_HAND][:cards].size != 3 or
+				 @arrangement[MID_HAND][:cards].size != 5 or
+				 @arrangement[BACK_HAND][:cards].size != 5 or
+				 @cards.size != 13
+				return true
+			end
 		end
 		evaluate_all_subhands
-		if @arrangement[FRONT_HAND][:cards].size != 3 or
-			 @arrangement[MID_HAND][:cards].size != 5 or
-			 @arrangement[BACK_HAND][:cards].size != 5 or
-			 @cards.size != 13
-			return false
-		elsif front_bigger_than_back?
-			return false
+		
+		if front_bigger_than_back?
+			return true
 		end
-		return true
+		
+		return false
 	end
-	
-  def my_logger
-    @@my_logger ||= Logger.new("#{Rails.root}/log/my.log")
-  end
-	
+
 	def auto_arrange
 		@cards.sort_by! { |card| card.value_comparison }
 		@arrangement = [ {cards: @cards[5..7], value: nil, human_name: nil },
 										 {cards: @cards[0..4], value: nil, human_name: nil  },
 										 {cards: @cards[8..12], value: nil, human_name: nil  } ]
-		@arranged=true
 	end
 	
 	def find_card_by_val(val)
@@ -89,19 +96,7 @@ class Hand
 	def evaluate_all_subhands
 		3.times { |i|	evaluate_subhand(i) }
 	end
-	
-	def test_evaluate_hands
-		3.times do |i|
-			evaluate_subhand(i)
-			puts "--------"
-			puts @arrangement[i][:human_name]
-			puts @arrangement[i][:unique_value]
-			@arrangement[i][:cards].each do |card|
-				puts card.human_description
-			end
-		end
-	end
-	
+
 	def lo_hand?(index)
 		if index==MID_HAND and MID_IS_LO
 			return true
@@ -120,7 +115,6 @@ class Hand
 	end
 	
 	def front_bigger_than_back?
-		my_logger.info "front_bigger_than_back? called"
 		return unique_value(@arrangement[FRONT_HAND][:value], @arrangement[FRONT_HAND][:cards]) >
 					 unique_value(@arrangement[BACK_HAND][:value],  @arrangement[BACK_HAND][:cards][0..2])
 	end
@@ -136,7 +130,7 @@ class Hand
 			multiples[card.value_comparison] += 1
 			card.value_comparison
 		end
-	
+		values.sort!.reverse! 
 		lo_hand=lo_hand?(index)
 	
 		# if it's not a lo hand and it's not the front, work out whether the hand is suited
@@ -152,8 +146,12 @@ class Hand
 		is_straight = false
 		
 		if !lo_hand and index != FRONT_HAND and multiples.length == cards.length  
+			puts "let's see if it's a straight"
+			puts values.first
+			puts values.last
+			puts values.length-1
 			if (values.first - values.last == values.length-1) or
-				values.first == ACE_COMPARATOR and values[1] == 5
+				 (values.first == ACE_COMPARATOR and values[1] == 5)
 				is_straight=true
 			end
 		end
