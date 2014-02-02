@@ -161,7 +161,10 @@ class Player
 	
 	def external_info(cards_public)
 	
-		if cards_public
+		if @empty
+			arrangement = [ {}, {}, {}]
+			folded = false
+		elsif cards_public
 			arrangement = @hand.arrangement
 			folded = @folded
 		else

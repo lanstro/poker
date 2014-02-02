@@ -36,8 +36,8 @@ class Table
 	OVERALL_SUGAR = 17
 	OVERALL_GAINS_LOSSES = 18
 						 
-	NOTIFICATIONS_DELAY      = [4, 2, 40, 10,  4, 2, 2, 2, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3, 2, 10]
-	NOTIFICATIONS_DELAY_TEST = [4, 2, 2,   2,   4, 2, 2, 2, 2,  3, 3, 2, 3,  3, 3, 2,  3, 3, 3, 2, 10]
+	NOTIFICATIONS_DELAY      = [4, 2, 40, 10,   6, 2, 2, 2, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3, 2, 10]
+	NOTIFICATIONS_DELAY_TEST = [4, 2, 2,   2,   6, 2, 2, 2, 2,  3, 3, 2, 3,  3, 3, 2,  3, 3, 3, 2, 10]
 	
 	@@tables = []
 	@@count = 0
@@ -119,6 +119,7 @@ class Table
 	
 	def add_human(user, amount)
 		index=0
+		puts "trying to add "+user.name
 		@seats.times do |seat|
 			puts "checking seat "+seat.to_s
 			if !@players[seat] or @players[seat].empty? or @players[seat].is_AI?
@@ -126,10 +127,12 @@ class Table
 				new_player = new_human(user, index, amount)
 				if(new_player)
 					@players[index] = new_player
+					puts "returning true"
 					return true
 				end
 				return false
 			end
+			index+=1
 		end
 		return false
 	end
@@ -635,17 +638,12 @@ class Table
 			end
 			@leave_queue -= [user]
 		end
+		puts "join queue is size "+@join_queue.size.to_s
+		@join_queue.delete_if{ |player| on_table? player[:user] }
 		@join_queue.each do |player|
-			if on_table? player[:user]
-				@join_queue.delete_if { |player| player[:user] == player[:user]}
-			else
-				if add_human(player[:user], player[:amount])
-					@join_queue.delete_if { |player| player[:user] == player[:user]}
-				else
-					break
-				end
-			end
+			add_human(player[:user], player[:amount])
 		end
+		@join_queue.delete_if{ |player| on_table? player[:user]}
 	end
 	
 	def player_object(user)
