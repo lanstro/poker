@@ -11,8 +11,11 @@ app.PlayerView = Backbone.View.extend({
 			escape: 		 /\<\@\-(.+?)\@\>/gim
 		};
 		
+		_.bindAll(this, 'renderDashboard', 'renderPInfo', 'render');
+		
 		this.dashboardTemplate= _.template($('#opponent_dashboard_template').html());
 		this.handRankingTemplate = _.template($('#hand_ranking_button_template').html());
+		this.playerInfoTemplate = _.template($('#player_info_template').html());
 		
 		this.listenToOnce(app.statusModel, "change:status", this.render);
 		this.listenTo(app.statusModel, "change:status", this.statusChanged);
@@ -30,7 +33,8 @@ app.PlayerView = Backbone.View.extend({
 		this.renderDashboard();
 		this.renderHand();
 		this.renderHandRanking();
-		
+		this.$playerInfo = this.$(".player_info");
+		this.renderPInfo();
 		return this;
 	},
 	
@@ -46,7 +50,7 @@ app.PlayerView = Backbone.View.extend({
 			case BACK_HAND_SUGAR:
 			case OVERALL_SUGAR:
 			case OVERALL_GAINS_LOSSES:
-				this.renderDashboard(newStatus);
+				this.renderPInfo(newStatus);
 				this.renderHand();
 				break;
 			case FRONT_HAND_WINNER_ANNOUNCE:
@@ -54,7 +58,7 @@ app.PlayerView = Backbone.View.extend({
 			case MID_HAND_WINNER_ANNOUNCE:
 			case MID_HAND_SUGAR:
 			case BACK_HAND_WINNER_ANNOUNCE:
-				this.renderDashboard(newStatus);
+				this.renderPInfo(newStatus);
 				break;
 			case INVALIDS_NOTIFICATION:
 				this.renderHand();
@@ -66,7 +70,7 @@ app.PlayerView = Backbone.View.extend({
 		}
 	},
 	
-	renderDashboard: function(status){
+	renderPInfo: function(status){
 		if(typeof status != 'undefined'){
 			var amount = 0;
 			switch (status){
@@ -120,14 +124,24 @@ app.PlayerView = Backbone.View.extend({
 		else {
 			amount = "";
 		}
-		this.$dashboard.empty();
-		this.$dashboard.html( this.dashboardTemplate({
+		this.$playerInfo.empty();
+		this.$playerInfo.html( this.playerInfoTemplate({
 			name: this.model.get("name"), 
 			balance: this.model.get("balance"), 
-			avatar: this.model.get("avatar"),
 			recentChange: amount
 		}));
 		// warn player that if their balance is too low at start of next hand, they'll be kicked off table
+		return this;
+	},
+	
+	renderDashboard: function(status){
+
+		this.$dashboard.empty();
+		this.$dashboard.html( this.dashboardTemplate({
+			avatar: this.model.get("avatar"),
+		}));
+		return this;
+		
 	},
 	
 	renderHand: function(){

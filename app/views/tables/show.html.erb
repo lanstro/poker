@@ -61,10 +61,13 @@
 	<script type="text/template" id="opponent_dashboard_template">
 		<img class="table_avatar" alt: "avatar" src= <@= $.parseJSON('<%= small_avatar_file_paths.to_json %>'.replace(/&quot;/g, '"'))[avatar] @>  >
 		<div class="player_info">
-			<p><@= name @></p>
-			<p><@= "$"+balance @></p>
-			<@= recentChange @>
 		</div>
+	</script>
+	
+	<script type="text/template" id="player_info_template">
+		<p><@= name @></p>
+		<p><@= "$"+balance @></p>
+		<@= recentChange @>
 	</script>
 	
 	<script type = "text/template" id="cards_back_template">

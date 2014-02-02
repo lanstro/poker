@@ -25,7 +25,10 @@ Poker::Application.configure do
   # Debug mode disables concatenation and preprocessing of assets.
   # This option may cause significant delays in view rendering with a large
   # number of complex assets.
-  config.assets.debug = true
+  config.assets.debug = false
+	config.serve_static_assets = true
+
+	config.static_cache_control = "public, max-age=360000"
 	
 	config.middleware.delete Rack::Lock
 end
