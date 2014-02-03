@@ -1,28 +1,21 @@
 todo:
 
-<<<<<<< HEAD
 - pair aces in lo should still be counted as high
 - drag & drop for card sorting
 - showdown timer fail - get javascript to post rather than waiting for signal?
 - all status updates handled by javascript rather than server
 - describe everyone's hands in the message box
-=======
 - drag & drop for card sorting
 - showdown timer fail - get javascript to post rather than waiting for signal?
 - give whole schedule to javascript?
->>>>>>> 18f1857f746cbfed5ebe6752d869492a202d980a
 - popup messages for:
 	- warning that balance too low
 	- welcome/farewell from table
 	- forced into sitting out
 - fix trailing slashes
-<<<<<<< HEAD
 - layout collapsing in invalids/folders notification
 - drawn hands not paying the same?
-=======
 - when not signed in, still see sit out / rage quit (cookies issue?)
-
->>>>>>> 18f1857f746cbfed5ebe6752d869492a202d980a
 
 - better message log - indentation, coloring
 - rules page
