@@ -146,10 +146,6 @@ class Hand
 		is_straight = false
 		
 		if !lo_hand and index != FRONT_HAND and multiples.length == cards.length  
-			puts "let's see if it's a straight"
-			puts values.first
-			puts values.last
-			puts values.length-1
 			if (values.first - values.last == values.length-1) or
 				 (values.first == ACE_COMPARATOR and values[1] == 5)
 				is_straight=true
@@ -229,7 +225,7 @@ class Hand
 						remaining.push card
 					end
 				end
-				remaining.sort_by!{|card| card.value_comparison(lo_hand)}.reverse!
+				remaining.sort_by!{|card| card.value_comparison(lo_hand)}.reverse!  
 				cards=temp+remaining
 				case hand_name
 					when FULL_HOUSE

@@ -119,9 +119,6 @@ app.UtilityButtonsView = Backbone.View.extend({
 			return this;
 		}
 		this.$readyButton.html(this.readyButtonTemplate);
-		if(this.model.get("sitting_out")){
-			this.$sitoutButton.children().val("Cancel ready");
-		}
 		return this;
 	},
 	
