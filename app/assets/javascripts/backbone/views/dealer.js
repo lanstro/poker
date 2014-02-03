@@ -10,8 +10,9 @@ app.DealerView = Backbone.View.extend({
 		
 		this.nextShowdownTime = null;
 		
-		_.bindAll(this, 'receivedStatus', 'render', 'toggleProtagonistViews', 'correctMessage', 'statusChanged');
-		this.listenTo(this.model, "change:in_hand", this.toggleProtagonistViews);
+		_.bindAll(this, 'receivedStatus', 'render', 'correctMessage', 'statusChanged', 'startDriver');
+		
+		this.listenToOnce(this.model, "sync", this.startDriver);
 		this.listenTo(this.model, "change:status", this.statusChanged);
 		this.setupDispatcher();
 		this.counter=null;
@@ -37,28 +38,7 @@ app.DealerView = Backbone.View.extend({
 	receivedChat: function(data){
 		app.pubSub.trigger("messageReceived", data);
 	},
-
-	toggleProtagonistViews: function(){
 	
-		var inHand = this.model.get("in_hand");
-
-		if(inHand){
-			if(typeof app.d == 'undefined')
-				app.d = new app.ProtagonistHandView();
-			if(typeof app.e == 'undefined')
-				app.e = new app.SortButtonsView();
-		}
-		else{
-			_.each([app.d, app.e], function(view){
-				if(typeof view != 'undefined'){
-					view.remove();
-					view.render();
-					delete view;
-				}
-			});
-		}
-	},
-
 	statusChanged: function(data){
 		var newStatus = data.get("status");
 		var msg = this.correctMessage();
@@ -161,16 +141,6 @@ app.DealerView = Backbone.View.extend({
 		return msg;
 	},
 	
-	// counter related code
-		
-	timeUntilShowdown: function(){
-		var time = this.model.get("next_showdown_time") -  Math.floor( new Date().getTime() / 1000 );
-		if(time < 0){
-			time = 0;
-		}
-		return time;
-	},
-	
 	// writing correct dealer announcements
 	
 	foldersInvalidsDescription: function(foldedOrInvalid){
@@ -261,6 +231,24 @@ app.DealerView = Backbone.View.extend({
 			}
 		}
 		return winner+" gets a bonus $"+contribution+" from each other player in the hand for "+handDescription;
+	},
+
+	// counter related code
+		
+	timeUntilShowdown: function(){
+		var time = this.model.get("timings")[SHOWDOWN_NOTIFICATION] -  Math.floor( new Date().getTime() / 1000 );
+		if(time < 0){
+			time = 0;
+		}
+		return time;
+	},
+	
+	timings: function(status){
+		return this.get("timings")[SHOWDOWN_NOTIFICATION]+_.reduce(NOTIFICATIONS_DELAY.splice(SHOWDOWN_NOTIFICATION, status), function(memo, num){ return memo + num;}, 0);
+	},
+	
+	startDriver: function(status){
+		current_time = Math.floor( new Date().getTime() / 1000 );
 	}
 
 });

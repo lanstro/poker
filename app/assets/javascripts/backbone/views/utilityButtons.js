@@ -5,6 +5,7 @@ app.UtilityButtonsView = Backbone.View.extend({
 	initialize: function(){
 		
 		this.model = app.statusModel;
+		
 		_.bindAll(this, 'join', 'renderJoin', 'renderLeave', 'statusChanged', 'render', 'leave');
 		
 		this.joinButtonTemplate = $("#join_button_template").html();
@@ -20,16 +21,30 @@ app.UtilityButtonsView = Backbone.View.extend({
 		this.$readyButton = this.$("#ready_button");
 		
 		this.listenToOnce(this.model, "sync", this.render);
-		this.listenTo(this.model, "change:in_hand", this.render);
+
+		this.listenToOnce(app.playerInfoCollection, "sync", this.firstTime);
+		
 		this.listenTo(this.model, "change:status", this.statusChanged);
 		this.listenTo(this.model, "change:in_join_queue", this.renderJoin);
 		this.listenTo(this.model, "change:in_join_queue", this.renderLeave);
-		this.listenTo(this.model, "change:in_leave_queue", this.renderJoin);
-		this.listenTo(this.model, "change:in_leave_queue", this.renderLeave);
-		this.listenTo(this.model, "change:sitting_out", this.renderSitout);
-		this.listenTo(this.model, "change:folded", this.renderFold);
-		this.listenTo(this.model, "change:ready_for_showdown", this.renderReady);
+
 		// need to handle when table forces player to be sitting out
+	},
+	
+	firstTime: function(){
+		var protagonist = app.protagonistModel();
+		if(!protagonist){
+			console.log("utility buttons returned from firstTime because no protagonist.");
+			return;
+		}
+		this.model2 = protagonist;
+		this.listenTo(this.model2, "change:in_current_hand", this.render);
+		this.listenTo(this.model2, "change:in_leave_queue", this.renderJoin);
+		this.listenTo(this.model2, "change:in_leave_queue", this.renderLeave);
+		this.listenTo(this.model2, "change:sitting_out", this.renderSitout);
+		this.listenTo(this.model2, "change:folded", this.renderFold);
+		this.listenTo(this.model2, "change:ready_for_showdown", this.renderReady);
+		this.render();
 	},
 	
 	events: {
@@ -51,7 +66,7 @@ app.UtilityButtonsView = Backbone.View.extend({
 	
 	renderJoin: function(){
 		this.$joinButton.empty();
-		if(!this.model.get("in_hand") && !this.model.get("in_join_queue")){
+		if(!this.model2 && !this.model.get("in_join_queue")){
 			this.$joinButton.html(this.joinButtonTemplate);
 			return this;
 		}
@@ -60,9 +75,9 @@ app.UtilityButtonsView = Backbone.View.extend({
 	
 	renderLeave: function(){
 		this.$leaveButton.empty();
-		if(this.model.get("in_hand")){
+		if(this.model2){
 			this.$leaveButton.html(this.leaveButtonTemplate);
-			if(this.model.get("in_leave_queue")){
+			if(this.model2.get("in_leave_queue")){
 				this.$leaveButton.children().val("Cancel rage quit");
 			}
 			return this;
@@ -81,25 +96,25 @@ app.UtilityButtonsView = Backbone.View.extend({
 	
 	renderSitout: function(){
 		this.$sitoutButton.empty();
-		if(!this.model.get("in_hand")){
+		if(!this.model2){
 			return this;
 		}
 		this.$sitoutButton.html(this.sitoutButtonTemplate);
-		if(this.model.get("sitting_out")){
+		if(this.model2.get("sitting_out")){
 			this.$sitoutButton.children().val("Deal me in!");
 		}
 	},
 	
 	renderFold: function(){
 		this.$foldButton.empty();
-		if(!this.model.get("in_hand")){
+		if(!this.model2){
 			return this;
 		}
 		var status = app.statusModel.get("status");
 		if( status < DEALING || status >= SHOWDOWN_NOTIFICATION){
 			return this;
 		}
-		if(app.statusModel.get("folded")){
+		if(this.model2.get("folded")){
 			return this;
 		}
 		this.$foldButton.html(this.foldButtonTemplate);
@@ -108,14 +123,14 @@ app.UtilityButtonsView = Backbone.View.extend({
 	
 	renderReady: function(){
 		this.$readyButton.empty();
-		if(!this.model.get("in_hand")){
+		if(!this.model2){
 			return this;
 		}
 		var status = app.statusModel.get("status");
 		if( status < DEALING || status >= SHOWDOWN_NOTIFICATION){
 			return this;
 		}
-		if(app.statusModel.get("folded")){
+		if(this.model2.get("folded")){
 			return this;
 		}
 		this.$readyButton.html(this.readyButtonTemplate);
@@ -167,7 +182,8 @@ app.UtilityButtonsView = Backbone.View.extend({
 							response = $.parseJSON(response.responseText);
 							bootbox.alert(response.response);
 							that.model.set("in_join_queue", response.in_join_queue);
-							that.model.set("in_leave_queue", false);
+							if(that.model2)
+								that.model2.set("in_leave_queue", false);
 						}
 					});
 				}
@@ -179,7 +195,7 @@ app.UtilityButtonsView = Backbone.View.extend({
 		var that = this;
 		$.getJSON( $('#table').data('table_id')+'/leave', function(response){
 			bootbox.alert(response.response);
-			that.model.set("in_leave_queue", response.in_leave_queue);
+			that.model2.set("in_leave_queue", response.in_leave_queue);
 			that.model.set("in_join_queue", false);
 		});
 	},
@@ -188,7 +204,7 @@ app.UtilityButtonsView = Backbone.View.extend({
 		var that = this;
 		$.getJSON( $('#table').data('table_id')+'/sitout', function(response){
 			bootbox.alert(response.response);
-			that.model.set("sitting_out", response.sitting_out);
+			that.model2.set("sitting_out", response.sitting_out);
 		});
 	},
 	
@@ -198,7 +214,7 @@ app.UtilityButtonsView = Backbone.View.extend({
 		$.getJSON( $('#table').data('table_id')+'/fold', function(response){
 			bootbox.alert(response.response);
 			
-			that.model.set("ready_for_showdown", response.ready_for_showdown);
+			that.model2.set("ready_for_showdown", response.ready_for_showdown);
 			// clear protagonist cards too
 		});
 	},
@@ -207,8 +223,8 @@ app.UtilityButtonsView = Backbone.View.extend({
 		var that = this;
 		$.getJSON( $('#table').data('table_id')+'/ready', function(response){
 			bootbox.alert(response.response);
-			that.model.set("folded", response.folded);
-			that.model.set("ready_for_showdown", response.ready_for_showdown);
+			that.model2.set("folded", response.folded);
+			that.model2.set("ready_for_showdown", response.ready_for_showdown);
 		});
 	}
 });

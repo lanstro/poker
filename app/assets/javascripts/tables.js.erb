@@ -1,0 +1,73 @@
+var app = app || {};
+
+var FRONT_HAND = 0,
+		MID_HAND   = 1,
+		BACK_HAND   = 2,
+		OVERALL_SUGAR_INDEX = 3,
+		FOLDERS_INDEX = 3,
+		MID_IS_LO  = true,
+		ACE        = 1,
+		TEN        = 10,
+		JACK       = 11,
+		QUEEN      = 12,
+		KING       = 0,
+		KING_COMPARATOR = 13,
+		ACE_COMPARATOR = 14,
+		HIGH_CARD = 0,
+		PAIR = 1,
+		TWO_PAIR = 2,
+		THREE_OF_A_KIND = 3,
+		STRAIGHT = 4,
+		FLUSH = 5,
+		FULL_HOUSE = 6,
+		FOUR_OF_A_KIND = 7,
+		FIVE_OF_A_KIND = 8,
+		STRAIGHT_FLUSH = 9;
+
+var	STATUS_RESET = 0,
+		WAITING_TO_START = 1,
+		DEALING = 2,
+		DISTRIBUTING_CARDS = 3,
+		WAITING_FOR_CARD_SORTING = 4,
+		ALMOST_SHOWDOWN = 5,
+		SHOWDOWN_NOTIFICATION = 6,
+		SEND_PLAYER_INFO = 7,
+		INVALIDS_NOTIFICATION = 8,
+		FOLDERS_NOTIFICATION = 9,
+		SHOWING_DOWN_FRONT_NOTIFICATION = 10,
+		FRONT_HAND_WINNER_ANNOUNCE = 11,
+		FRONT_HAND_SUGAR = 12,
+		SHOWING_DOWN_MID_NOTIFICATION = 13,
+		MID_HAND_WINNER_ANNOUNCE = 14,
+		MID_HAND_SUGAR = 15,
+		SHOWING_DOWN_BACK_NOTIFICATION = 16,
+		BACK_HAND_WINNER_ANNOUNCE = 17,
+		BACK_HAND_SUGAR = 18,
+		OVERALL_SUGAR = 19,
+		OVERALL_GAINS_LOSSES = 20;
+		
+var NOTIFICATIONS_DELAY = <%= NOTIFICATIONS_DELAY %>;
+		
+$(document).ready(function(){
+
+	// replace this with better asset pipeline management
+	if($('#table').length > 0 ){
+		
+		app.pubSub = _.extend({}, Backbone.Events);
+		app.statusModel = new app.Dealer();
+		app.playerInfoCollection = new app.Opponents();
+
+		app.a = new app.DealerView();
+		app.b = new app.ChatView();
+		
+		app.protagonistModel = function(){
+			return app.playerInfoCollection.getProtagonistModel();
+		}
+		
+		app.c = new app.OpponentsView();
+		app.g = new app.UtilityButtonsView();
+		
+
+	}
+	
+});

@@ -1,10 +1,10 @@
 class Player
 
-	attr_reader :is_AI, :user, :name, :avatar, :hand, :seat, :invalid, :hands_sat_out, :ready_for_showdown, :balance, :invalid
+	attr_reader :is_AI, :user, :name, :avatar, :hand, :seat, :invalid, :hands_sat_out, :ready_for_showdown, :balance, :invalid, :table
 	attr_accessor :in_current_hand, :sitting_out, :folded, :rankings
 
 	def initialize(player="AI", table=nil, balance=1000, seat=0, empty=false)
-		# need to implement auto sitting out after inactivity
+		
 		@table = table
 		@balance=balance
 		@seat = seat
@@ -147,11 +147,13 @@ class Player
 		@in_current_hand = !@sitting_out
 		if @in_current_hand
 			@hands_sat_out = 0
+			@ready_for_showdown = false
+		else
+			@ready_for_showdown = true
 		end
 		muck
 		@invalid = false
 		@folded = false
-		@ready_for_showdown = false
 		@hand.arranged = false
 	end
 	
@@ -159,29 +161,35 @@ class Player
 		return @invalid = @hand.is_invalid?
 	end
 	
-	def external_info(cards_public)
+	def external_info(args)
 	
 		if @empty
 			arrangement = [ {}, {}, {}]
 			folded = false
-		elsif cards_public
+		elsif args[:cards_public] or args[:user] == @user
 			arrangement = @hand.arrangement
 			folded = @folded
 		else
 			arrangement = [ {}, {}, {}]
 			folded = false
 		end
-	
-		return {seat: 					 @seat,
-						name: 					 @name, 
-					  avatar: 				 @avatar,
-						balance: 				 @balance, 
-						in_current_hand: @in_current_hand, 
-						arrangement:		 arrangement,
-						rankings:        @rankings,
-						folded:          folded,
-						invalid:         @invalid,
-						empty:           @empty}
+		result = {seat: 					 @seat,
+							name: 					 @name, 
+							avatar: 				 @avatar,
+							balance: 				 @balance, 
+							in_current_hand: @in_current_hand, 
+							arrangement:		 arrangement,
+							rankings:        @rankings,
+							folded:          folded,
+							invalid:         @invalid,
+							empty:           @empty}
+		if(args[:user] == @user)
+			result.merge!({ protagonist:				true,
+											in_leave_queue: 		@table.leave_queue.include?(@user),
+											ready_for_showdown: @ready_for_showdown,
+											sitting_out:				@sitting_out })
+		end
+		return result
 	end
 	
 end

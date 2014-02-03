@@ -24,7 +24,7 @@ app.Hand = Backbone.Collection.extend({
 
 	comparator: function(card){
 		if(this.sortMethod === 'suit'){
-			return card.get('suit');
+			return card.get('val');
 		}
 		else {
 			return card.valueComputed();

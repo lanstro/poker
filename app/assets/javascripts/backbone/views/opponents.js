@@ -10,7 +10,7 @@ app.OpponentsView = Backbone.View.extend({
 		
 		_.bindAll(this, 'render');
 		
-		this.listenTo(app.statusModel, "change:in_hand", this.render);
+		this.listenTo(this.collection, "sync", this.render);
 		this.listenTo(app.statusModel, "change:status", this.updatePlayersInfo);
 	},
 
@@ -25,9 +25,10 @@ app.OpponentsView = Backbone.View.extend({
 		this.subViews = [];
 		
 		var seat = null, modulus = null;
+		var protagonist = app.protagonistModel();
 		
-		if(app.statusModel.get("in_hand")){
-			seat = app.statusModel.get("seat");
+		if(protagonist){
+			seat = protagonist.get("seat");
 			modulus = this.collection.size() % 2;
 			this.collection.each(function(player){
 				if(player.get("seat") != seat && player != this.collection.last()){
@@ -35,12 +36,12 @@ app.OpponentsView = Backbone.View.extend({
 				}
 			}, this);
 			if(modulus == 0){
-				this.renderOpponent(this.collection.get(app.statusModel.get("seat")));
+				this.renderOpponent(this.collection.get(protagonist.get("seat")));
 				this.renderOpponent(this.collection.last());
 			}
 			else{
 				this.renderOpponent(this.collection.last());
-				this.renderOpponent(this.collection.get(app.statusModel.get("seat")));
+				this.renderOpponent(this.collection.get(protagonist.get("seat")));
 			}
 		}
 		else{
@@ -48,6 +49,23 @@ app.OpponentsView = Backbone.View.extend({
 				this.renderOpponent(player);
 			}, this);		
 		}
+		
+		if(protagonist){
+			if(typeof app.d == 'undefined')
+				app.d = new app.ProtagonistHandView();
+			if(typeof app.e == 'undefined')
+				app.e = new app.SortButtonsView();
+		}
+		else{
+			_.each([app.d, app.e], function(view){
+				if(typeof view != 'undefined'){
+					view.remove();
+					view.render();
+					delete view;
+				}
+			});
+		}
+		
 		return this;
 	},
 	
@@ -60,7 +78,7 @@ app.OpponentsView = Backbone.View.extend({
 	},
 	
 	updatePlayersInfo: function(data){
-		if(data.get("status") === SEND_PLAYER_INFO || data.get("status") === WAITING_TO_START)
+		if(data.get("status") === SEND_PLAYER_INFO || data.get("status") === DEALING)
 			this.collection.fetch({update: true});
 	}
 	

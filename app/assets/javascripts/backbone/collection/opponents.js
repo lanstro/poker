@@ -6,5 +6,13 @@ app.Opponents = Backbone.Collection.extend({
 		_.bindAll(this, 'fetch');
 		this.url=$('#table').data('table_id')+'/players_info';
 		this.fetch();
+	},
+	getProtagonistModel: function(){
+		var result=null;
+		this.each(function(model){
+			if(model.get("protagonist"))
+				result= model;
+		});
+		return result;
 	}
 });

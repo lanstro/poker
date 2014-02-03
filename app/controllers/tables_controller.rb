@@ -71,15 +71,10 @@ class TablesController < ApplicationController
 	end
 	
 	def players_info
-		@player_info = Table.find_by_id(params[:id]).players_info
+		@player_info = Table.find_by_id(params[:id]).players_info(current_user)
 		respond_with @player_info
 	end
-	
-	def protagonist_cards
-		@protagonist_cards = Table.find_by_id(params[:id]).protagonist_cards(current_user)
-		respond_with @protagonist_cards
-	end
-	
+
 	def post_protagonist_cards
 		@table = Table.find_by_id(params[:id])
 		respond_to do |format|
@@ -88,15 +83,9 @@ class TablesController < ApplicationController
 	end
 	
 	def status
-		@table = Table.find_by_id(params[:id])
-		player = @table.player_object(current_user)
-		if(player)
-			result = { status: @table.status, next_showdown_time: @table.next_showdown_time,  in_hand: true, seat: player.seat, folded: player.folded, in_join_queue: @table.in_queue?(current_user), in_leave_queue: @table.leave_queue.include?(current_user), folded: player.folded, ready_for_showdown: player.ready_for_showdown, sitting_out: player.sitting_out }
-		else
-			result = { status: @table.status, next_showdown_time: @table.next_showdown_time,  in_hand: false, seat: nil, folded: nil, in_join_queue: @table.in_queue?(current_user), in_leave_queue: @table.leave_queue.include?(current_user), folded: nil, ready_for_showdown: nil, sitting_out: nil}
-		end
+		table = Table.find_by_id(params[:id])
 		respond_to do |format|
-			format.json { render :json =>  result}
+			format.json { render :json =>  { status: table.status, timings: table.timings,  in_join_queue: table.in_queue?(current_user)}}
 		end
 	end
 	
@@ -104,7 +93,7 @@ class TablesController < ApplicationController
 		@table = Table.find_by_id(params[:id])
 		user = current_user
 		if user
-			result = { logged_in: true, balance: user.balance, table_balance: user.table_balance.values.sum, min_table_balance:  @table.min_table_balance }
+			result = { balance: user.balance, table_balance: user.table_balance.values.sum, min_table_balance:  @table.min_table_balance }
 		else
 			result = false
 		end

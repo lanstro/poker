@@ -16,6 +16,7 @@ todo:
 - rules page
 - understand asset pipeline and separate out the page specific stuff
 - figure out heroku bug
+- use helper to do recover table balances
 
 - AI?
 - kickstarter?

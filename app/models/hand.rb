@@ -2,7 +2,7 @@ class Hand
 
 	SUGARS = [THREE_OF_A_KIND, 6, FOUR_OF_A_KIND]
 
-	attr_reader :owner, :cards, :arrangement, :table
+	attr_reader :owner, :arrangement, :table
 	attr_accessor :arranged
 	
   def my_logger
@@ -12,18 +12,37 @@ class Hand
 	def initialize(table=nil, owner=nil)
 		@owner = owner
 		@table = table
-		@cards = []
 		@arranged=false
-		@arrangement = [{}, {}, {}]
+		reset_arrangement
+	end
+	
+	def reset_arrangement
+		@arrangement = [ {cards: [], value: nil, human_name: nil },
+										 {cards: [], value: nil, human_name: nil  },
+										 {cards: [], value: nil, human_name: nil  } ]
 	end
 	
 	def muck
-		@cards=[]
-		@arrangement = [{}, {}, {}]
+		reset_arrangement
 	end
 	
 	def dealt_card(card)
-		@cards.push card
+		3.times do |i|
+			if @arrangement[i][:cards].size < SUBHAND_SIZES[i]
+				@arrangement[i][:cards].push card
+				return
+			end
+		end
+		puts "Error: I've been dealt too many cards for Chinese Poker"
+		Rails.logger.debug "Error: I've been dealt too many cards for Chinese Poker"
+	end
+	
+	def cards
+		result = []
+		@arrangement.each do |row|
+			result += row[:cards]
+		end
+		return result
 	end
 	
 	def is_invalid?
@@ -36,7 +55,7 @@ class Hand
 			return false
 		end
 	
-		if @owner.folded or @cards.size == 0
+		if @owner.folded or cards.size == 0
 			return false
 		end
 
@@ -48,7 +67,7 @@ class Hand
 			if @arrangement[FRONT_HAND][:cards].size != 3 or
 				 @arrangement[MID_HAND][:cards].size != 5 or
 				 @arrangement[BACK_HAND][:cards].size != 5 or
-				 @cards.size != 13
+				 cards.size != 13
 				return true
 			end
 		end
@@ -62,29 +81,19 @@ class Hand
 	end
 
 	def auto_arrange
-		@cards.sort_by! { |card| card.value_comparison }
-		@arrangement = [ {cards: @cards[5..7], value: nil, human_name: nil },
-										 {cards: @cards[0..4], value: nil, human_name: nil  },
-										 {cards: @cards[8..12], value: nil, human_name: nil  } ]
+		temp = cards.sort_by! { |card| card.value_comparison }
+		@arrangement = [ {cards: cards[5..7], value: nil, human_name: nil },
+										 {cards: cards[0..4], value: nil, human_name: nil  },
+										 {cards: cards[8..12], value: nil, human_name: nil  } ]
 	end
-	
-	def find_card_by_val(val)
-		@cards.each do |card|
-			if card.val == val
-				return card
-			end
-		end
-		return nil
-	end
-	
-	def post_protagonist_cards (arrangement)
-		@arrangement = [ {cards: [], value: nil, human_name: nil },
-										 {cards: [], value: nil, human_name: nil  },
-										 {cards: [], value: nil, human_name: nil  } ]
+
+	def post_protagonist_cards(arrangement)
+		temp_cards = cards
+		reset_arrangement
 		which_hand = 0
 		arrangement.each do |row|
 			row.each do |val|
-				@arrangement[which_hand][:cards].push (find_card_by_val val)
+				@arrangement[which_hand][:cards].push (temp_cards.find { |card| card.val == val})
 			end
 			which_hand+=1
 		end
