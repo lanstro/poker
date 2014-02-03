@@ -11,6 +11,7 @@ todo:
 	- forced into sitting out
 - fix trailing slashes
 - layout collapsing in invalids/folders notification
+- drawn hands not paying the same?
 
 - better message log - indentation, coloring
 - rules page
