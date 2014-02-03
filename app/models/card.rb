@@ -1,13 +1,14 @@
 class Card
 
-	attr_reader :val, :suit, :face_value_short, :face_value_long, :human_description
+	attr_reader :val, :human_description
 
 	def initialize(val)
 		@val = val
-		@suit = ["c", "s", "h", "d"][((@val-1)%52)/13]
-		@face_value_short = value_human "short"
-		@face_value_long = value_human "long"
-		@human_description = @face_value_short + @suit
+		@human_description = face_value_short + suit
+	end
+	
+	def suit
+		return ["c", "s", "h", "d"][((@val-1)%52)/13]
 	end
 	
 	def value_human(length="short")
@@ -25,6 +26,14 @@ class Card
 			else
 				return (@val%13).to_s
 		end
+	end
+	
+	def face_value_short
+		return value_human "short"
+	end
+	
+	def face_value_long
+		return value_human "long"
 	end
 	
 	def value_comparison(ace_lo = false)

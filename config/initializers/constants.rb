@@ -5,6 +5,7 @@ BACK_HAND   = 2
 FOLDERS_INDEX = 3
 OVERALL_SUGAR_INDEX = 3
 SUBHAND_NAMES = ["front", "middle", "back"]
+SUBHAND_SIZES = [3, 5, 5]
 MID_IS_LO  = true
 ACE        = 1
 TEN        = 10

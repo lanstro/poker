@@ -14,35 +14,35 @@ class Table
 						 
 	#scheduler statuses
 						 
-	NOT_ENOUGH_PLAYERS = -2
-	STATUS_RESET = -1
-	WAITING_TO_START = 0
-	DEALING = 1
-	WAITING_FOR_CARD_SORTING = 2
-	ALMOST_SHOWDOWN = 3
-	SHOWDOWN_NOTIFICATION = 4
-	SEND_PLAYER_INFO = 5
-	INVALIDS_NOTIFICATION = 6
-	FOLDERS_NOTIFICATION = 7
-	SHOWING_DOWN_FRONT_NOTIFICATION = 8
-	FRONT_HAND_WINNER_ANNOUNCE = 9
-	FRONT_HAND_SUGAR = 10
-	SHOWING_DOWN_MID_NOTIFICATION = 11
-	MID_HAND_WINNER_ANNOUNCE = 12
-	MID_HAND_SUGAR = 13
-	SHOWING_DOWN_BACK_NOTIFICATION = 14
-	BACK_HAND_WINNER_ANNOUNCE = 15
-	BACK_HAND_SUGAR = 16
-	OVERALL_SUGAR = 17
-	OVERALL_GAINS_LOSSES = 18
+	STATUS_RESET = 0
+	WAITING_TO_START = 1
+	DEALING = 2
+	DISTRIBUTING_CARDS = 3
+	WAITING_FOR_CARD_SORTING = 4
+	ALMOST_SHOWDOWN = 5
+	SHOWDOWN_NOTIFICATION = 6
+	SEND_PLAYER_INFO = 7
+	INVALIDS_NOTIFICATION = 8
+	FOLDERS_NOTIFICATION = 9
+	SHOWING_DOWN_FRONT_NOTIFICATION = 10
+	FRONT_HAND_WINNER_ANNOUNCE = 11
+	FRONT_HAND_SUGAR = 12
+	SHOWING_DOWN_MID_NOTIFICATION = 13
+	MID_HAND_WINNER_ANNOUNCE = 14
+	MID_HAND_SUGAR = 15
+	SHOWING_DOWN_BACK_NOTIFICATION = 16
+	BACK_HAND_WINNER_ANNOUNCE = 17
+	BACK_HAND_SUGAR = 18
+	OVERALL_SUGAR = 19
+	OVERALL_GAINS_LOSSES = 20
 						 
-	NOTIFICATIONS_DELAY      = [4, 2, 40, 10,   6, 2, 2, 2, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3, 2, 10]
-	NOTIFICATIONS_DELAY_TEST = [4, 2, 2,   2,   6, 2, 2, 2, 2,  3, 3, 2, 3,  3, 3, 2,  3, 3, 3, 2, 10]
+	NOTIFICATIONS_DELAY      = [6, 4, 2, 4, 10,  5, 4, 2, 2, 2, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3]
 	
 	@@tables = []
 	@@count = 0
 	
-	attr_reader :stakes, :id, :seats, :ais, :players, :results, :min_table_balance, :status, :next_showdown_time, :unique_id, :leave_queue
+	attr_reader :stakes, :id, :seats, :ais, :players, :results, :min_table_balance, :status, 
+		:unique_id, :leave_queue, :cards, :current_job
 	
   def initialize(stakes=DEFAULT_STAKES, seats=DEFAULT_SEATS, ais=DEFAULT_AIS)
 		
@@ -66,7 +66,6 @@ class Table
 		@status = STATUS_RESET
 		@scheduler = Rufus::Scheduler.new
 		@current_job = nil
-		@next_showdown_time = nil
 		
 		(CARDS_PER_DECK*@decks).times do |val|
 			@cards.push(Card.new(val+1))
@@ -204,13 +203,9 @@ class Table
 	#scheduler
 	
 	def driver
+		puts "driver called at status "+@status.to_s+" and time "+Time.new.to_f.to_s
 		# skip the delay if there are no relevant sugars, or invalid hands / folding hands
-		if (@status == INVALIDS_NOTIFICATION and invalid_hands?.size == 0 ) or
-			 (@status == FOLDERS_NOTIFICATION and folders?.size==0) or
-			 (@status == FRONT_HAND_SUGAR and !sugar_payable? FRONT_HAND) or
-			 (@status == MID_HAND_SUGAR and !sugar_payable? MID_HAND) or
-			 (@status == BACK_HAND_SUGAR and !sugar_payable? BACK_HAND) or
-			 (@status == OVERALL_SUGAR and !sugar_payable? OVERALL_SUGAR_INDEX)
+		if (skip_status?)
 			@status += 1
 			driver
 			return
@@ -231,7 +226,7 @@ class Table
 				if enough_players?
 					deal
 				else
-					@status = NOT_ENOUGH_PLAYERS
+					@status = STATUS_RESET
 				end
 			when SEND_PLAYER_INFO
 				muck_invalids
@@ -243,7 +238,7 @@ class Table
 			when FOLDERS_NOTIFICATION
 				payout(:hand, FOLDERS_INDEX)
 				if players_at_showdown.size < 2
-					@status = NOT_ENOUGH_PLAYERS
+					@status = STATUS_RESET
 				end
 			when FRONT_HAND_WINNER_ANNOUNCE
 				payout(:hand, FRONT_HAND)
@@ -260,19 +255,13 @@ class Table
 			when OVERALL_SUGAR
 				payout(:sugars, OVERALL_SUGAR_INDEX)
 			when OVERALL_GAINS_LOSSES
-				players_in_hand.each(&:new_hand_started)
+				@players.each(&:new_hand_started)
 		end
 		
-		broadcast_status
-	
 		@current_job = @scheduler.in (NOTIFICATIONS_DELAY[@status]).to_s+'s', :job => true do
 			@status+=1
 			driver
 		end
-	end
-	
-	def broadcast_status
-		WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:table_status, {status: @status, next_showdown_time: @next_showdown_time })
 	end
 	
 	# common queries
@@ -301,6 +290,77 @@ class Table
 		return players_in_hand.keep_if(&:folded)
 	end
 	
+	def skip_status?(status=@status)
+		if @status < SEND_PLAYER_INFO  
+			# showdown hasn't happened yet - the queries below would error, and nothing should be skipped anyway
+			return false
+		end
+		case status
+			when INVALIDS_NOTIFICATION
+				return invalid_hands?.size == 0
+			when FOLDERS_NOTIFICATION
+				return folders?.size == 0
+			when FRONT_HAND_SUGAR
+				return !sugar_payable?(FRONT_HAND)
+			when MID_HAND_SUGAR
+				return !sugar_payable?(MID_HAND)
+			when BACK_HAND_SUGAR
+				return !sugar_payable?(BACK_HAND)
+			when OVERALL_SUGAR
+				return !sugar_payable?(OVERALL_SUGAR_INDEX)
+		end
+		return false
+	end
+	
+	def relevant_delays
+		if @status < SEND_PLAYER_INFO  
+			# showdown hasn't happened yet - as far as we know, no steps are to be skipped
+			return NOTIFICATIONS_DELAY.dup
+		end
+		result = NOTIFICATIONS_DELAY.dup
+		result.size.times do |status|
+			if skip_status? status
+				result[status] = 0
+			end
+		end
+		return result
+	end
+	
+	def calculate_next_deal_time
+		next_job_time = @current_job.time.to_f
+		if @status < DISTRIBUTING_CARDS
+			return next_job_time + (@status == DEALING ? 0 : NOTIFICATIONS_DELAY[(@status+1)..DEALING].inject(:+))
+		elsif @status < SEND_PLAYER_INFO
+			return nil
+		else
+			temp = relevant_delays
+			if players_at_showdown.size < 2
+				# no real showdown.  We're at SEND_PLAYER_INFO, INVALIDS_NOTIFICATION or FOLDERS_NOTIFICATION
+				temp = temp[(@status+1)..FOLDERS_NOTIFICATION]+[temp[WAITING_TO_START..DEALING]]
+			else
+				temp = temp[(@status+1)..(temp.size)]+[temp[WAITING_TO_START..DEALING]]
+			end
+			return next_job_time + (temp.size > 0 ? temp.inject(:+) : 0)
+		end
+	end
+	
+	def calculate_next_showdown_time
+		if @status < DISTRIBUTING_CARDS or @status >= SHOWDOWN_NOTIFICATION
+			# we don't know when showdown will be - there might not be enough players to deal the next hand
+			return nil
+		end
+		next_job_time = @current_job.time.to_f
+		return next_job_time + (@status == ALMOST_SHOWDOWN ? 0 : NOTIFICATIONS_DELAY[(@status+1)..ALMOST_SHOWDOWN].inject(:+))
+	end
+	
+	def timings
+		if @status >= DEALING and @status < SHOWDOWN_NOTIFICATION
+			return { SHOWDOWN_NOTIFICATION => calculate_next_showdown_time }
+		else
+			return { DISTRIBUTING_CARDS => calculate_next_deal_time }
+		end
+	end
+	
 	# play
 	
 	def deal
@@ -310,8 +370,6 @@ class Table
 			player.dealt_card(@cards[index])
 			index+=1
 		end
-		@next_showdown_time = (Time.new + NOTIFICATIONS_DELAY[WAITING_FOR_CARD_SORTING] +
-													NOTIFICATIONS_DELAY[ALMOST_SHOWDOWN]).to_i
 		players_sitting_out.each(&:missed_a_hand);
 	end
 	
@@ -526,23 +584,14 @@ class Table
 	
 	# external queries
 	
-	def players_info
+	def players_info(user)
 		if @status < SHOWDOWN_NOTIFICATION
 			cards_public=false
 		else
 			cards_public=true
 		end
 		return @players.map do |player|
-			player.external_info(cards_public)
-		end
-	end
-	
-	def protagonist_cards(user)
-		p = player_object user
-		if p
-			return p.hand.cards
-		else
-			return "You are not playing."
+			player.external_info({cards_public: cards_public, user: user})
 		end
 	end
 	
@@ -582,26 +631,11 @@ class Table
 	end
 	
 	def Table.find_by_id(id)
-		id=id.to_i
-		if id > 0
-			@@tables.each do |table|
-				if table.id == id
-					return table
-				end
-			end
-			return nil;
-		end
-		return nil;
+		return @@tables.find { |table| table.id == id }
 	end
 	
 	def Table.find_by_unique_id(id)
-		id=id.to_i
-		@@tables.each do |table|
-			if table.unique_id == id
-				return table
-			end
-		end
-		return nil;
+		return @@tables.find { |table| table.unique_id == id }
 	end
 	
 	def Table.find_empty_table(stakes=DEFAULT_STAKES, seats=DEFAULT_SEATS, ais=DEFAULT_AIS)
@@ -638,7 +672,6 @@ class Table
 			end
 			@leave_queue -= [user]
 		end
-		puts "join queue is size "+@join_queue.size.to_s
 		@join_queue.delete_if{ |player| on_table? player[:user] }
 		@join_queue.each do |player|
 			add_human(player[:user], player[:amount])
@@ -647,12 +680,7 @@ class Table
 	end
 	
 	def player_object(user)
-		@players.each do |p|
-			if p.user==user
-				return p
-			end
-		end
-		return nil
+		@players.find { |p| p.user == user }
 	end
 	
 	def persisted?

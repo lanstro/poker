@@ -4,24 +4,30 @@ app.ProtagonistHandView = Backbone.View.extend({
 	el: '#protagonist_cards',
 	initialize: function(){
 		var col = new app.Hand();
-		col.url=$('#table').data('table_id')+'/protagonist_cards';
-		col.fetch();
+		
 		this.collection= col;
-
+		console.log("handview created");
 		_.bindAll(this, 'render', 'recalcHands');
 
 		this.listenTo(col, "sort", this.sorted);
-		this.listenToOnce(app.statusModel, 'change:status', this.render);
+		
+		col.reset(app.protagonistModel().cards());
+		
 		this.listenTo(app.statusModel, "change:status", this.statusChanged);
-		this.listenTo(app.statusModel, "change:folded", this.folded);
-		
-		
 		this.listenTo(app.pubSub, "blankClicked", this.blankClicked);
 		this.listenTo(app.pubSub, "sortByVal", this.collection.sortByVal);
 		this.listenTo(app.pubSub, "sortBySuit", this.collection.sortBySuit);
 		
-		this.listenTo(app.pubSub, "swapCards", this.swapCards);
+		this.listenTo(app.protagonistModel(), "change:arrangement", this.changedArrangement);
 		
+		this.listenTo(app.pubSub, "swapCards", this.swapCards);
+		this.sorted();
+	},
+	
+	changedArrangement:function(){
+		console.log("arrangement changed");
+		this.collection.reset(app.protagonistModel().cards());
+		this.sorted();
 	},
 
 	blankClicked: function(row, position){
@@ -56,6 +62,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 	},
 	
 	sorted: function(){
+		console.log("sorted called");
 		var row=0;
 		var cards_in_current_row=0;
 		var layout=[3, 5, 5];
@@ -86,10 +93,8 @@ app.ProtagonistHandView = Backbone.View.extend({
 				this.render();
 				break;
 		}
-		if(newStatus === DEALING){
-			this.collection.fetch();
-		}
 		if (newStatus === SHOWDOWN_NOTIFICATION){
+			console.log("want to post hand");
 			this.postHand();
 		}
 		if (newStatus === OVERALL_GAINS_LOSSES){
@@ -98,17 +103,16 @@ app.ProtagonistHandView = Backbone.View.extend({
 	},
 	
 	render: function(){
-	
+		console.log("handview render called");
+		
 		var status = app.statusModel.get("status");
+		console.log("handview render status: "+status);
 		this.$el.empty();
 		
 		// somewhere else - if it's beyond folders_notification, use the playersInfo arrangement instead
 		
 		if(this.collection.models.length === 0 || status < DEALING || status > BACK_HAND_SUGAR){
 			this.renderRow([false, false, false]);
-		}
-		else if(status >= DEALING && status <= FOLDERS_NOTIFICATION){
-			this.renderRow([true, true, true]);
 		}
 		else if(status >= SHOWING_DOWN_FRONT_NOTIFICATION && status <= FRONT_HAND_SUGAR){
 			this.renderRow([true, false, false]);
@@ -118,6 +122,9 @@ app.ProtagonistHandView = Backbone.View.extend({
 		}		
 		else if(status >= SHOWING_DOWN_BACK_NOTIFICATION && status <= BACK_HAND_SUGAR){
 			this.renderRow([false, false, true]);
+		}
+		else {
+			this.renderRow([true, true, true]);
 		}
 		return this;
 	},
@@ -149,7 +156,6 @@ app.ProtagonistHandView = Backbone.View.extend({
 				}
 			}
 		}
-	
 	},
 	
 	postHand: function(){
@@ -257,11 +263,6 @@ app.ProtagonistHandView = Backbone.View.extend({
 			}
 		}, this);
 		this.render();
-	},
-	
-	handDealt: function(cards){
-		this.collection.reset(cards.cards);
-		this.collection.sort();
 	},
 	
 	recalcHands: function(){

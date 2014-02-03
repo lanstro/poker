@@ -10,15 +10,19 @@ app.DealerView = Backbone.View.extend({
 		
 		this.nextShowdownTime = null;
 		
-		_.bindAll(this, 'receivedStatus', 'render', 'toggleProtagonistViews');
-		this.listenTo(this.model, "change:in_hand", this.toggleProtagonistViews);
+		_.bindAll(this, 'receivedStatus', 'render', 'correctMessage', 'statusChanged', 'startDriver');
+		
+		this.listenToOnce(this.model, "sync", this.startDriver);
 		this.listenTo(this.model, "change:status", this.statusChanged);
 		this.setupDispatcher();
 		this.counter=null;
 	},
 
-	render: function(){
-		this.$el.html("<p>"+this.correct_message()+"</p>");
+	render: function(msg){
+		if(!msg){
+			msg = this.correctMessage();
+		}
+		this.$el.html("<p>"+msg+"</p>");
 		return this;
 	},
 	
@@ -34,33 +38,18 @@ app.DealerView = Backbone.View.extend({
 	receivedChat: function(data){
 		app.pubSub.trigger("messageReceived", data);
 	},
-
-	toggleProtagonistViews: function(){
 	
-		var inHand = this.model.get("in_hand");
-
-		if(inHand){
-			if(typeof app.d == 'undefined')
-				app.d = new app.ProtagonistHandView();
-			if(typeof app.e == 'undefined')
-				app.e = new app.SortButtonsView();
-		}
-		else{
-			_.each([app.d, app.e], function(view){
-				if(typeof view != 'undefined'){
-					view.remove();
-					view.render();
-					delete view;
-				}
-			});
-		}
-	},
-
 	statusChanged: function(data){
 		var newStatus = data.get("status");
-		var msg = this.correct_message();
-		if(msg.length > 0){
-			app.pubSub.trigger("dealerMessage", {user: "Dealer", broadcast: this.correct_message()});
+		var msg = this.correctMessage();
+		if(msg.length > 0 && typeof msg == "string"){
+			app.pubSub.trigger("dealerMessage", {user: "Dealer", broadcast: msg});
+		}
+		else if(msg.length > 0){
+			_.each(msg, function(m){
+				app.pubSub.trigger("dealerMessage", {user: "Dealer", broadcast: m});
+			});
+			msg = msg[0]+" See message log for details."
 		}
 		if(newStatus === DEALING){
 			this.model.fetch();
@@ -72,14 +61,14 @@ app.DealerView = Backbone.View.extend({
 		if(newStatus === SEND_PLAYER_INFO)
 			clearInterval(this.counter);
 		
-		this.render();
+		this.render(msg);
 	},
 	
 	receivedStatus: function(data){
 		this.model.set({status: data.status});
 	},
 	
-	correct_message: function(){
+	correctMessage: function(){
 		var msg;
 		switch(this.model.get("status")){
 			case NOT_ENOUGH_PLAYERS:
@@ -119,8 +108,7 @@ app.DealerView = Backbone.View.extend({
 				msg = "First, show the three front cards. Highest hand wins.";
 				break;
 			case FRONT_HAND_WINNER_ANNOUNCE:
-				msg = this.winnerAnnounce(FRONT_HAND)+" See message log for further details";
-				//this.allHandsAnnounce(FRONT_HAND);
+				msg = this.allHandsAnnounce(FRONT_HAND);
 				break;
 			case FRONT_HAND_SUGAR:
 				msg = this.sugarAnnounce(FRONT_HAND);
@@ -129,8 +117,7 @@ app.DealerView = Backbone.View.extend({
 				msg = "Next, show the middle five cards. Lowest hand wins.";
 				break;
 			case MID_HAND_WINNER_ANNOUNCE:
-				msg = this.winnerAnnounce(MID_HAND)+" See message log for further details";
-				//this.allHandsAnnounce(MID_HAND);
+				msg = this.allHandsAnnounce(MID_HAND);
 				break;
 			case MID_HAND_SUGAR:
 				msg = this.sugarAnnounce(MID_HAND);
@@ -139,8 +126,7 @@ app.DealerView = Backbone.View.extend({
 				msg = "Next, show the back five cards. Highest hand wins.";
 				break;
 			case BACK_HAND_WINNER_ANNOUNCE:
-				msg = this.winnerAnnounce(BACK_HAND)+" See message log for further details";
-				//this.allHandsAnnounce(BACK_HAND);
+				msg = this.allHandsAnnounce(BACK_HAND);
 				break;
 			case BACK_HAND_SUGAR:
 				msg = this.sugarAnnounce(BACK_HAND);
@@ -153,16 +139,6 @@ app.DealerView = Backbone.View.extend({
 				break;
 		}
 		return msg;
-	},
-	
-	// counter related code
-		
-	timeUntilShowdown: function(){
-		var time = this.model.get("next_showdown_time") -  Math.floor( new Date().getTime() / 1000 );
-		if(time < 0){
-			time = 0;
-		}
-		return time;
 	},
 	
 	// writing correct dealer announcements
@@ -216,19 +192,20 @@ app.DealerView = Backbone.View.extend({
 		var winners = [], handDescription = "", handAnnouncements=[];
 		for(var i=0; i < app.playerInfoCollection.size(); i++){
 			app.playerInfoCollection.each(function(player){
-				if(winners.get("rankings")[whichHand]["rank"] === i){
+				if(player.get("rankings")[whichHand]["rank"] === i+1){
 					winners.push(player.get("name"));
 					handDescription = player.get("arrangement")[whichHand]["human_name"];
 				}
 			});
 			if(winners.length === 1){
-				handAnnouncements.push( winners[0]+" comes "+["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"][i]+" with "+handDescription+".");
+				handAnnouncements.push( winners[0]+" "+(i===0? "wins" : "comes "+["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"][i])+" with "+handDescription+".");
 			}
-			else {
+			else if(winners.length > 1){
 				handAnnouncements.push( winners.slice(0, winners.length - 1).join(', ') + " and " + winners.slice(-1) + " tie for "+["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"][i]+" with "+handDescription+".");
 			}
+			winners=[];
 		}
-		console.log(handAnnouncements);
+		return handAnnouncements;
 	},
 	
 	sugarAnnounce: function(whichHand){
@@ -254,6 +231,24 @@ app.DealerView = Backbone.View.extend({
 			}
 		}
 		return winner+" gets a bonus $"+contribution+" from each other player in the hand for "+handDescription;
+	},
+
+	// counter related code
+		
+	timeUntilShowdown: function(){
+		var time = this.model.get("timings")[SHOWDOWN_NOTIFICATION] -  Math.floor( new Date().getTime() / 1000 );
+		if(time < 0){
+			time = 0;
+		}
+		return time;
+	},
+	
+	timings: function(status){
+		return this.get("timings")[SHOWDOWN_NOTIFICATION]+_.reduce(NOTIFICATIONS_DELAY.splice(SHOWDOWN_NOTIFICATION, status), function(memo, num){ return memo + num;}, 0);
+	},
+	
+	startDriver: function(status){
+		current_time = Math.floor( new Date().getTime() / 1000 );
 	}
 
 });

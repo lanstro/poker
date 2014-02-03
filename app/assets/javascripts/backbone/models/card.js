@@ -12,5 +12,9 @@ app.Card = Backbone.Model.extend ({
 			result = ACE_COMPARATOR;
 		}
 		return result;
+	},
+	
+	suit: function(){
+		return ["c", "s", "h", "d"][((this.get('val')-1)%52)/13]
 	}
 });
