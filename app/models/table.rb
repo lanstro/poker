@@ -289,7 +289,7 @@ class Table
 	end
 	
 	def skip_status?(status=@status)
-		if @status < SEND_PLAYER_INFO  
+		if status < SEND_PLAYER_INFO  
 			# showdown hasn't happened yet - the queries below would error, and nothing should be skipped anyway
 			return false
 		end

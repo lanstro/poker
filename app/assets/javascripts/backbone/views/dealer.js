@@ -5,16 +5,15 @@ app.DealerView = Backbone.View.extend({
 	initialize: function(){
 		
 		this.model = app.statusModel;
-		this.model.url =$("#table").data("table_id")+'/status';
-		this.model.fetch();
 		
-		_.bindAll(this, 'receivedStatus', 'render', 'correctMessage', 'statusChanged', 'startDriver', 'driver');
+		_.bindAll(this, 'receivedStatus', 'render', 'correctMessage', 'statusChanged', 'syncDriver', 'driver');
 		
-		this.listenTo(this.model, "change:timings", this.startDriver);
+		this.listenTo(this.model, "change:timings", this.syncDriver);
 		this.listenTo(this.model, "change:status", this.statusChanged);
 		
 		this.setupDispatcher();
 		this.counter=null;
+		this.driverID=null;
 	},
 
 	render: function(msg){
@@ -71,10 +70,9 @@ app.DealerView = Backbone.View.extend({
 	correctMessage: function(){
 		var msg;
 		switch(this.model.get("status")){
-			case NOT_ENOUGH_PLAYERS:
-				msg = "Not enough players in for this hand.  Waiting..."
-				break;
 			case STATUS_RESET:
+				msg = "";
+				break;
 			case WAITING_TO_START:
 				msg = "The next hand will begin soon...";
 				break;
@@ -141,15 +139,19 @@ app.DealerView = Backbone.View.extend({
 		return msg;
 	},
 	
-	// writing correct dealer announcements
-	
-	foldersInvalidsDescription: function(foldedOrInvalid){
-		var players = [], msg = "";
+	invalidOrFoldedPlayers: function(foldedOrInvalid){
+		var players=[];
 		app.playerInfoCollection.each(function(player){
 			if (player.get(foldedOrInvalid)){
 				players.push(player.get("name"));
 			}
 		});
+		return players;
+	},
+	
+	foldersInvalidsDescription: function(foldedOrInvalid){
+		var players = this.invalidOrFoldedPlayers(foldedOrInvalid);
+		var msg = "";
 		if(players.length > 1){
 			msg= players.slice(0, players.length - 1).join(', ') + " and " + players.slice(-1);
 			if(foldedOrInvalid === "folded"){
@@ -230,10 +232,32 @@ app.DealerView = Backbone.View.extend({
 				handDescription = "absolutely dominating this round by winning all 3 hands!";
 			}
 		}
-		return winner+" gets a bonus $"+contribution+" from each other player in the hand for "+handDescription;
+		return winner+" gets a bonus $"+contribution+" from each other player in the hand for ";//+handDescription;
 	},
 
 	// counter related code
+		
+	query_skip_status: function(status){
+		if (status < SEND_PLAYER_INFO){
+			return false
+		}
+		switch (status) {
+			case INVALIDS_NOTIFICATION:
+				return invalidOrFoldedPlayers("invalid").size == 0;
+			case FOLDERS_NOTIFICATION:
+				return invalidOrFoldedPlayers("folded").size == 0;
+			case FRONT_HAND_SUGAR:
+				return !sugar_payable(FRONT_HAND);
+			case MID_HAND_SUGAR:
+				return !sugar_payable(MID_HAND);
+			case BACK_HAND_SUGAR:
+				return !sugar_payable(BACK_HAND);
+			case OVERALL_SUGAR:
+				return !sugar_payable(OVERALL_SUGAR_INDEX);
+		}
+		return false
+	},
+	
 		
 	timeUntilShowdown: function(){
 		var time = this.model.get("timings")[SHOWDOWN_NOTIFICATION] -  Math.floor( new Date().getTime() / 1000 );
@@ -242,21 +266,42 @@ app.DealerView = Backbone.View.extend({
 		}
 		return time;
 	},
-	
-	timings: function(status){
-		return this.get("timings")[SHOWDOWN_NOTIFICATION]+_.reduce(NOTIFICATIONS_DELAY.splice(SHOWDOWN_NOTIFICATION, status), function(memo, num){ return memo + num;}, 0);
-	},
-	
+
 	driver: function(newStatus){
+		console.log("driver called with "+newStatus);
+		window.clearTimeout(this.driverID);
 		if(!newStatus || typeof newStatus == 'undefined')
 			newStatus = this.model.get("status")+1;
+		if(this.query_skip_status(newStatus)){
+			this.driver(newStatus);
+			return;
+		}
+		else if (newStatus > OVERALL_GAINS_LOSSES){
+			this.driver(WAITING_TO_START);
+			return;
+		}
+		console.log("model status set to "+newStatus);
 		this.model.set("status", newStatus);
-		this.setTimeOut(this.driver, NOTIFICATIONS_DELAY[newStatus]);
+		this.driverID=window.setTimeout(this.driver, NOTIFICATIONS_DELAY[newStatus]*1000);
 	},
 	
-	startDriver: function(status){
-		this.setTimeOut(this.driver, this.model.get("timings")["next_status"]
+	syncDriver: function(status){
+		console.log("syncDriver called");
+		window.clearTimeout(this.driverID);
+		this.driverID=window.setTimeout(this.driver, this.model.get("timings")["next_status_time"] - ( new Date().getTime() / 1000 ), this.model.get("timings")["next_status"]);
 		current_time = Math.floor( new Date().getTime() / 1000 );
-	}
+	},
+	
+	// hand queries
 
+	sugar_payable: function(whichHand){
+		var result = false;
+		app.playerInfoCollection.each(function(player){
+			if (player.rankings[whichHand].size > 0 &&
+			    player.rankings[whichHand]["sugars"] &&
+				  player.rankings[whichHand]["sugars"] > 0)
+				return result = true;
+		});
+		return result;
+	},
 });
