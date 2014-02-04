@@ -69,6 +69,9 @@ class Table
 			@cards.push(Card.new(val+1))
 		end
 		
+		# testing
+		@last_cycle_time = nil
+		
 		fill_seats_with (@ais? "AIs" :"empty")
 		driver
   end
@@ -201,9 +204,10 @@ class Table
 	#scheduler
 	
 	def driver
-		puts "driver called at status "+@status.to_s+" and time "+Time.new.to_f.to_s
 		# skip the delay if there are no relevant sugars, or invalid hands / folding hands
+		puts "driver called at status "+@status.to_s+" at time "+Time.new.to_f.to_s
 		if (skip_status?)
+			puts "skipping status "+@status.to_s
 			@status += 1
 			driver
 			return
@@ -215,10 +219,19 @@ class Table
 			driver
 			return
 		end
+		
+		@current_job = @scheduler.in (NOTIFICATIONS_DELAY[@status]).to_s+'s', :job => true do
+			@status+=1
+			driver
+		end
 	
 		# for some statuses, need extra action
 		case @status
 			when WAITING_TO_START
+				if @last_cycle_time
+					puts "time since last cycle: "+(Time.new.to_f - @last_cycle_time).to_s
+				end
+				@last_cycle_time = Time.new.to_f
 				insert_remove_players
 			when DEALING
 				if enough_players?
@@ -236,6 +249,8 @@ class Table
 			when FOLDERS_NOTIFICATION
 				payout(:hand, FOLDERS_INDEX)
 				if players_at_showdown.size < 2
+					puts "too many folders - restarting"
+					@players.each(&:new_hand_started)
 					@status = STATUS_RESET
 				end
 			when FRONT_HAND_WINNER_ANNOUNCE
@@ -249,16 +264,12 @@ class Table
 			when BACK_HAND_WINNER_ANNOUNCE
 				payout(:hand, BACK_HAND)
 			when BACK_HAND_SUGAR
+				puts "back hand sugar reached"
 				payout(:sugars, BACK_HAND)
 			when OVERALL_SUGAR
 				payout(:sugars, OVERALL_SUGAR_INDEX)
 			when OVERALL_GAINS_LOSSES
 				@players.each(&:new_hand_started)
-		end
-		
-		@current_job = @scheduler.in (NOTIFICATIONS_DELAY[@status]).to_s+'s', :job => true do
-			@status+=1
-			driver
 		end
 	end
 	
@@ -310,57 +321,14 @@ class Table
 		return false
 	end
 	
-	def relevant_delays
-		if @status < SEND_PLAYER_INFO  
-			# showdown hasn't happened yet - as far as we know, no steps are to be skipped
-			return NOTIFICATIONS_DELAY.dup
-		end
-		result = NOTIFICATIONS_DELAY.dup
-		result.size.times do |status|
-			if skip_status? status
-				result[status] = 0
-			end
-		end
-		return result
-	end
-	
-	def calculate_next_deal_time
-		next_job_time = @current_job.time.to_f
-		if @status < DISTRIBUTING_CARDS
-			return next_job_time + (@status == DEALING ? 0 : NOTIFICATIONS_DELAY[(@status+1)..DEALING].inject(:+))
-		elsif @status < SEND_PLAYER_INFO
-			return nil
-		else
-			temp = relevant_delays
-			if players_at_showdown.size < 2
-				# no real showdown.  We're at SEND_PLAYER_INFO, INVALIDS_NOTIFICATION or FOLDERS_NOTIFICATION
-				temp = temp[(@status+1)..FOLDERS_NOTIFICATION]+temp[WAITING_TO_START..DEALING]
-			else
-				temp = temp[(@status+1)..(temp.size)]+temp[WAITING_TO_START..DEALING]
-			end
-			puts "calculate_next_deal_time injection"
-			puts temp.inspect
-			return next_job_time + (temp.size > 0 ? temp.inject(:+) : 0)
-		end
-	end
-	
-	def calculate_next_showdown_time
-		if @status < DEALING or @status >= SHOWDOWN_NOTIFICATION
-			# we don't know when showdown will be - there might not be enough players to deal the next hand
-			return nil
-		end
-		next_job_time = @current_job.time.to_f
-		return next_job_time + (@status == ALMOST_SHOWDOWN ? 0 : NOTIFICATIONS_DELAY[(@status+1)..ALMOST_SHOWDOWN].inject(:+))
-	end
-	
 	def timings
-		if @status >= DEALING and @status < SHOWDOWN_NOTIFICATION
-			return { next_status: @status + 1, next_status_time: @current_job.time.to_f, next_milestone_status: SHOWDOWN_NOTIFICATION, next_milestone_time: calculate_next_showdown_time }
-		else
-			# remember that when @status is at SHOWDOWN_NOTIFICATION, this will return nil as we don't know what's going
-			# to happen until all the hands come back
-			return { next_status: @status + 1, next_status_time: @current_job.time.to_f, next_milestone_status: DISTRIBUTING_CARDS, next_milestone_time: calculate_next_deal_time }
+		next_status = @status+1
+		next_status_time = @current_job.time.to_f
+		if next_status == DISTRIBUTING_CARDS or next_status == SEND_PLAYER_INFO
+			# lie about the status time for these 2 major client pulls to give the server a bit of leeway
+			next_status_time += 2
 		end
+		return { next_status: next_status, next_status_time: next_status_time}
 	end
 	
 	# play
@@ -513,10 +481,12 @@ class Table
 	end
 	
 	def sugar_payable?(which_hand)
+		puts "sugar_payable called for "+which_hand.to_s
 		players_at_showdown.each do |player|
 			if player.rankings[which_hand].size > 0 and
 			   player.rankings[which_hand][:sugars] and
 				 player.rankings[which_hand][:sugars] > 0
+				puts "about to return true because "+player.name+" had a ranking for hand "+which_hand.to_s+" of "+player.rankings[which_hand].inspect
 				return true
 			end
 		end

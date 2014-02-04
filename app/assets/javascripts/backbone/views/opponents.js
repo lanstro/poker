@@ -78,7 +78,7 @@ app.OpponentsView = Backbone.View.extend({
 	},
 	
 	updatePlayersInfo: function(data){
-		if(data.get("status") === SEND_PLAYER_INFO || data.get("status") === DEALING)
+		if(data.get("status") === SEND_PLAYER_INFO || data.get("status") === DISTRIBUTING_CARDS)
 			this.collection.fetch({update: true});
 	}
 	

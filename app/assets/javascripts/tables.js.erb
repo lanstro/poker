@@ -47,12 +47,15 @@ var	STATUS_RESET = 0,
 		OVERALL_GAINS_LOSSES = 20;
 		
 var NOTIFICATIONS_DELAY = <%= NOTIFICATIONS_DELAY %> ;
+// give the server some lagtime at 2 stages: 1. dealing cards and 2. calculating showdown
+NOTIFICATIONS_DELAY[DEALING]+=2;
+NOTIFICATIONS_DELAY[SHOWDOWN_NOTIFICATION]+=2;
+
 		
 $(document).ready(function(){
 
 	// replace this with better asset pipeline management
 	if($('#table').length > 0 ){
-		
 		app.pubSub = _.extend({}, Backbone.Events);
 		app.statusModel = new app.Dealer();
 		app.playerInfoCollection = new app.Opponents();
