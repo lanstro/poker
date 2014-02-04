@@ -26,5 +26,6 @@ FIVE_OF_A_KIND = 8
 STRAIGHT_FLUSH = 9
 CARDS_PER_DECK = 52
 
+NOTIFICATIONS_DELAY      = [6, 4, 2, 4, 10,  5, 4, 2, 2, 2, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3]
 
 KAILOGGER = Logger.new("log/Kai.log")

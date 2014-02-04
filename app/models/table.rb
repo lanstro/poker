@@ -35,8 +35,6 @@ class Table
 	BACK_HAND_SUGAR = 18
 	OVERALL_SUGAR = 19
 	OVERALL_GAINS_LOSSES = 20
-						 
-	NOTIFICATIONS_DELAY      = [6, 4, 2, 4, 10,  5, 4, 2, 2, 2, 2, 10, 3, 2, 10, 3, 2, 10, 3, 3, 3]
 	
 	@@tables = []
 	@@count = 0
@@ -336,16 +334,18 @@ class Table
 			temp = relevant_delays
 			if players_at_showdown.size < 2
 				# no real showdown.  We're at SEND_PLAYER_INFO, INVALIDS_NOTIFICATION or FOLDERS_NOTIFICATION
-				temp = temp[(@status+1)..FOLDERS_NOTIFICATION]+[temp[WAITING_TO_START..DEALING]]
+				temp = temp[(@status+1)..FOLDERS_NOTIFICATION]+temp[WAITING_TO_START..DEALING]
 			else
-				temp = temp[(@status+1)..(temp.size)]+[temp[WAITING_TO_START..DEALING]]
+				temp = temp[(@status+1)..(temp.size)]+temp[WAITING_TO_START..DEALING]
 			end
+			puts "calculate_next_deal_time injection"
+			puts temp.inspect
 			return next_job_time + (temp.size > 0 ? temp.inject(:+) : 0)
 		end
 	end
 	
 	def calculate_next_showdown_time
-		if @status < DISTRIBUTING_CARDS or @status >= SHOWDOWN_NOTIFICATION
+		if @status < DEALING or @status >= SHOWDOWN_NOTIFICATION
 			# we don't know when showdown will be - there might not be enough players to deal the next hand
 			return nil
 		end
@@ -355,9 +355,11 @@ class Table
 	
 	def timings
 		if @status >= DEALING and @status < SHOWDOWN_NOTIFICATION
-			return { SHOWDOWN_NOTIFICATION => calculate_next_showdown_time }
+			return { next_status: @status + 1, next_status_time: @current_job.time.to_f, next_milestone_status: SHOWDOWN_NOTIFICATION, next_milestone_time: calculate_next_showdown_time }
 		else
-			return { DISTRIBUTING_CARDS => calculate_next_deal_time }
+			# remember that when @status is at SHOWDOWN_NOTIFICATION, this will return nil as we don't know what's going
+			# to happen until all the hands come back
+			return { next_status: @status + 1, next_status_time: @current_job.time.to_f, next_milestone_status: DISTRIBUTING_CARDS, next_milestone_time: calculate_next_deal_time }
 		end
 	end
 	
@@ -555,6 +557,7 @@ class Table
 			@current_job.unschedule
 			@status = SHOWDOWN_NOTIFICATION
 			driver
+			WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:table_status, {status: @status, timings: timings })
 		end
 	end
 	
@@ -631,11 +634,11 @@ class Table
 	end
 	
 	def Table.find_by_id(id)
-		return @@tables.find { |table| table.id == id }
+		return @@tables.find { |table| table.id == id.to_i }
 	end
 	
 	def Table.find_by_unique_id(id)
-		return @@tables.find { |table| table.unique_id == id }
+		return @@tables.find { |table| table.unique_id == id.to_i }
 	end
 	
 	def Table.find_empty_table(stakes=DEFAULT_STAKES, seats=DEFAULT_SEATS, ais=DEFAULT_AIS)

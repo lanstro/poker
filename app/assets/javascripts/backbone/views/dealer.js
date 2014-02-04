@@ -8,12 +8,11 @@ app.DealerView = Backbone.View.extend({
 		this.model.url =$("#table").data("table_id")+'/status';
 		this.model.fetch();
 		
-		this.nextShowdownTime = null;
+		_.bindAll(this, 'receivedStatus', 'render', 'correctMessage', 'statusChanged', 'startDriver', 'driver');
 		
-		_.bindAll(this, 'receivedStatus', 'render', 'correctMessage', 'statusChanged', 'startDriver');
-		
-		this.listenToOnce(this.model, "sync", this.startDriver);
+		this.listenTo(this.model, "change:timings", this.startDriver);
 		this.listenTo(this.model, "change:status", this.statusChanged);
+		
 		this.setupDispatcher();
 		this.counter=null;
 	},
@@ -42,10 +41,11 @@ app.DealerView = Backbone.View.extend({
 	statusChanged: function(data){
 		var newStatus = data.get("status");
 		var msg = this.correctMessage();
-		if(msg.length > 0 && typeof msg == "string"){
+		
+		if(typeof msg == "string" && msg.length > 0 ){
 			app.pubSub.trigger("dealerMessage", {user: "Dealer", broadcast: msg});
 		}
-		else if(msg.length > 0){
+		else if(typeof msg != 'undefined' && msg.length > 0){
 			_.each(msg, function(m){
 				app.pubSub.trigger("dealerMessage", {user: "Dealer", broadcast: m});
 			});
@@ -65,7 +65,7 @@ app.DealerView = Backbone.View.extend({
 	},
 	
 	receivedStatus: function(data){
-		this.model.set({status: data.status});
+		this.model.set(data);
 	},
 	
 	correctMessage: function(){
@@ -247,7 +247,15 @@ app.DealerView = Backbone.View.extend({
 		return this.get("timings")[SHOWDOWN_NOTIFICATION]+_.reduce(NOTIFICATIONS_DELAY.splice(SHOWDOWN_NOTIFICATION, status), function(memo, num){ return memo + num;}, 0);
 	},
 	
+	driver: function(newStatus){
+		if(!newStatus || typeof newStatus == 'undefined')
+			newStatus = this.model.get("status")+1;
+		this.model.set("status", newStatus);
+		this.setTimeOut(this.driver, NOTIFICATIONS_DELAY[newStatus]);
+	},
+	
 	startDriver: function(status){
+		this.setTimeOut(this.driver, this.model.get("timings")["next_status"]
 		current_time = Math.floor( new Date().getTime() / 1000 );
 	}
 
