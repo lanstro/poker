@@ -6,28 +6,38 @@ app.ProtagonistHandView = Backbone.View.extend({
 		var col = new app.Hand();
 		
 		this.collection= col;
-		console.log("handview created");
-		_.bindAll(this, 'render', 'recalcHands');
+		_.bindAll(this, 'render');
 
 		this.listenTo(col, "sort", this.sorted);
 		
-		col.reset(app.protagonistModel().cards());
+		console.log("cards right now are "+JSON.stringify(app.playerInfoCollection.getProtagonistModel().cards()));
+		col.reset(app.playerInfoCollection.getProtagonistModel().cards());
 		
 		this.listenTo(app.statusModel, "change:status", this.statusChanged);
 		this.listenTo(app.pubSub, "blankClicked", this.blankClicked);
 		this.listenTo(app.pubSub, "sortByVal", this.collection.sortByVal);
 		this.listenTo(app.pubSub, "sortBySuit", this.collection.sortBySuit);
 		
-		this.listenTo(app.protagonistModel(), "change:arrangement", this.changedArrangement);
+		this.listenTo(app.playerInfoCollection.getProtagonistModel(), "change:arrangement", this.changedArrangement);
+		
 		
 		this.listenTo(app.pubSub, "swapCards", this.swapCards);
 		this.sorted();
+		this.retries = 0;
 	},
 	
-	changedArrangement:function(){
-		console.log("arrangement changed");
-		this.collection.reset(app.protagonistModel().cards());
-		this.sorted();
+	changedArrangement:function(data){
+		var protagonist = app.playerInfoCollection.getProtagonistModel();
+		if(!protagonist){
+			this.remove();
+			delete this;
+			return;
+		}
+		var cards = protagonist.cards();
+		if(cards){
+			this.collection.reset(cards);
+			this.sorted();
+		}
 	},
 
 	blankClicked: function(row, position){
@@ -62,7 +72,6 @@ app.ProtagonistHandView = Backbone.View.extend({
 	},
 	
 	sorted: function(){
-		console.log("sorted called");
 		var row=0;
 		var cards_in_current_row=0;
 		var layout=[3, 5, 5];
@@ -94,7 +103,6 @@ app.ProtagonistHandView = Backbone.View.extend({
 				break;
 		}
 		if (newStatus === SHOWDOWN_NOTIFICATION){
-			console.log("want to post hand");
 			this.postHand();
 		}
 		if (newStatus === OVERALL_GAINS_LOSSES){
@@ -103,10 +111,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 	},
 	
 	render: function(){
-		console.log("handview render called");
-		
 		var status = app.statusModel.get("status");
-		console.log("handview render status: "+status);
 		this.$el.empty();
 		
 		// somewhere else - if it's beyond folders_notification, use the playersInfo arrangement instead
@@ -158,20 +163,54 @@ app.ProtagonistHandView = Backbone.View.extend({
 		}
 	},
 	
-	postHand: function(){
-		result = [[], [], []];
+	handToPost: function(){
+		var result = [[], [], []];
 		if(this.collection.size() === 0){
 			return;
 		}
 		_.each(this.collection.models, function(card){
 			result[card.get("row")].push(card.get("val"));
 		});
+		return result;
+	},
+	
+	postHand: function(){
+		var data = this.handToPost();
+		if(!data)
+			return;
+		var retries = 0;
+		var that = this;
+		
+		app.pubSub.trigger("allowedToAdvanceStatus", false);
+		$("#announcements").addClass("loading");
+		
 		$.ajax({
 			type: "POST",
 			url: $('#table').data('table_id')+"/post_protagonist_cards", 
 			dataType: "json",
-			data: JSON.stringify({arrangement: result}), 
-			contentType: 'application/json'
+			data: JSON.stringify({arrangement: data}), 
+			contentType: 'application/json',
+			timeout: 2000 + that.retries *1000,
+			error: function(xhr, textStatus, errorThrown){
+				if(textStatus == "timeout"){
+					if(that.retries > 2){
+						bootbox.alert("Your connection to the server is very poor, and we have failed to post your hand.  Your hand has been automatically arranged, and you have been set to sitting out the next hand.");
+						app.pubSub.trigger("allowedToAdvanceStatus", true);
+						app.playerInfoCollection.getProtagonistModel().set("sitting_out", true);
+						that.retries = 0;
+						return;
+					}
+					else{
+						that.retries+=1;
+						that.postHand();
+					}
+				}
+			},
+			success: function(data){
+				app.pubSub.trigger("allowedToAdvanceStatus", true);
+				$("#announcements").removeClass("loading");
+				that.retries = 0;
+			}
 		});
 	},
 	
@@ -263,16 +302,6 @@ app.ProtagonistHandView = Backbone.View.extend({
 			}
 		}, this);
 		this.render();
-	},
-	
-	recalcHands: function(){
-		var descriptions= ["", "", ""];
-		for(i=0; i<3; i++){
-			if(this.handNumbersValid(i)){
-				descriptions[i] = this.collection.evaluateSubhand(i)["humanName"];
-			}
-		}
-		//app.pubSub.trigger("protagonistHandDescriptionsUpdated",  descriptions);
 	},
 	
 	handNumbersValid: function(whichHand){

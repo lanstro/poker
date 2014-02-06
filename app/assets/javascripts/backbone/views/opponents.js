@@ -8,78 +8,60 @@ app.OpponentsView = Backbone.View.extend({
 		this.collection= col;
 		this.subViews = [];
 		
-		_.bindAll(this, 'render');
+		_.bindAll(this, 'render', 'reorderSubViews', 'createSubViews');
 		
-		this.listenTo(this.collection, "sync", this.render);
+		this.createSubViews();
+		this.render();
 		this.listenTo(app.statusModel, "change:status", this.updatePlayersInfo);
+		
+		this.listenTo(this.collection, "change:protagonist", this.render);
 	},
-
+	
+	reorderSubViews: function(){
+		var protagonistView;
+		this.subViews = _.reject(this.subViews, function(subView){
+			if(subView.model.get("protagonist")){
+				protagonistView = subView;
+				return true;
+			}
+		});
+		var modulus = this.collection.size() % 2;
+		if(modulus == 0)
+			this.subViews.splice(-1, 0, protagonistView);
+		else
+			this.subViews.push(protagonistView);
+	},
+	
 	render: function(){
 		this.$el.empty();
-		_.each(this.subViews, function(view){
-			view.remove();
-			view.render();
-			delete view;
-		});
-
-		this.subViews = [];
+		var protagonist = this.collection.getProtagonistModel();
 		
-		var seat = null, modulus = null;
-		var protagonist = app.protagonistModel();
+		if(protagonist)
+			this.reorderSubViews();
 		
-		if(protagonist){
-			seat = protagonist.get("seat");
-			modulus = this.collection.size() % 2;
-			this.collection.each(function(player){
-				if(player.get("seat") != seat && player != this.collection.last()){
-					this.renderOpponent(player);
-				}
-			}, this);
-			if(modulus == 0){
-				this.renderOpponent(this.collection.get(protagonist.get("seat")));
-				this.renderOpponent(this.collection.last());
-			}
-			else{
-				this.renderOpponent(this.collection.last());
-				this.renderOpponent(this.collection.get(protagonist.get("seat")));
-			}
-		}
-		else{
-			this.collection.each(function(player){
-				this.renderOpponent(player);
-			}, this);		
-		}
-		
-		if(protagonist){
-			if(typeof app.d == 'undefined')
-				app.d = new app.ProtagonistHandView();
-			if(typeof app.e == 'undefined')
-				app.e = new app.SortButtonsView();
-		}
-		else{
-			_.each([app.d, app.e], function(view){
-				if(typeof view != 'undefined'){
-					view.remove();
-					view.render();
-					delete view;
-				}
-			});
-		}
-		
+		_.each(this.subViews, function(playerView){
+			this.$el.append(playerView.render().$el);
+		}, this);
 		return this;
 	},
 	
-	renderOpponent: function(player){
-		var playerView=new app.PlayerView({
-			model: player,
-		});
-		this.subViews.push(playerView);
-		this.$el.append(playerView.render().$el);
+	createSubViews: function(){
+		this.collection.each(function(player){
+			this.subViews.push(new app.PlayerView({
+				model: player
+			}));
+		}, this);
+		console.log(this.subViews);
 	},
-	
+
 	updatePlayersInfo: function(data){
-		if(data.get("status") === SEND_PLAYER_INFO || data.get("status") === DISTRIBUTING_CARDS)
-			this.collection.fetch({update: true});
+		
+		// get updates on what players are on the table
+		if(data.get("status") === DISTRIBUTING_CARDS)
+			this.collection.retryFetch("protagonist_cards");
+		
+		if(data.get("status") === SEND_PLAYER_INFO)
+			this.collection.retryFetch("rankings");
 	}
 	
 });

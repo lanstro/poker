@@ -5,11 +5,11 @@
 // index
 
 .tablesorter-headerAsc {
-  background: url('icons/up-arrow.png') no-repeat right;
+  background: image-url('icons/up-arrow.png') no-repeat right;
 }
 
 .tablesorter-headerDesc {
-  background: url('icons/down-arrow.png') no-repeat right;
+  background: image-url('icons/down-arrow.png') no-repeat right;
 }
 
 // show
@@ -126,6 +126,18 @@
 	text-align:center;
 	vertical-align:middle;
 	font-size: 0.8vw;
+	
+	#announcements_spinner{
+		display:none;
+		width: 20%;
+		height: 20%;
+		left: 40%;
+		position:relative;
+		background: image-url('other/spinner.gif') no-repeat;
+	}
+}
+#announcements.loading #announcements_spinner{
+	display:block;
 }
 
 #protagonist{

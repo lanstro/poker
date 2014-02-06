@@ -20,30 +20,35 @@ app.UtilityButtonsView = Backbone.View.extend({
 		this.$foldButton = this.$("#fold_button");
 		this.$readyButton = this.$("#ready_button");
 		
-		this.listenToOnce(this.model, "sync", this.render);
-
-		this.listenToOnce(app.playerInfoCollection, "sync", this.firstTime);
+		this.listenTo(app.playerInfoCollection, "change:protagonist", this.checkForProtagonist);
 		
 		this.listenTo(this.model, "change:status", this.statusChanged);
 		this.listenTo(this.model, "change:in_join_queue", this.renderJoin);
 		this.listenTo(this.model, "change:in_join_queue", this.renderLeave);
-
-		// need to handle when table forces player to be sitting out
+		
+		this.checkForProtagonist();
+		this.render();
 	},
 	
-	firstTime: function(){
-		var protagonist = app.protagonistModel();
-		if(!protagonist){
-			console.log("utility buttons returned from firstTime because no protagonist.");
+	checkForProtagonist: function(){
+		console.log("change in protagonist detected by utility buttons");
+		var protagonist = app.playerInfoCollection.getProtagonistModel();
+		if (protagonist == this.model2){
+			return;
+		}
+		if(!protagonist && this.model2){
+			this.stopListening(this.model2);
+			this.model2=null;
+			this.render();
 			return;
 		}
 		this.model2 = protagonist;
-		this.listenTo(this.model2, "change:in_current_hand", this.render);
-		this.listenTo(this.model2, "change:in_leave_queue", this.renderJoin);
-		this.listenTo(this.model2, "change:in_leave_queue", this.renderLeave);
-		this.listenTo(this.model2, "change:sitting_out", this.renderSitout);
-		this.listenTo(this.model2, "change:folded", this.renderFold);
-		this.listenTo(this.model2, "change:ready_for_showdown", this.renderReady);
+		this.listenTo(protagonist, "change:in_current_hand", this.render);
+		this.listenTo(protagonist, "change:in_leave_queue", this.renderJoin);
+		this.listenTo(protagonist, "change:in_leave_queue", this.renderLeave);
+		this.listenTo(protagonist, "change:sitting_out", this.renderSitout);
+		this.listenTo(protagonist, "change:folded", this.renderFold);
+		this.listenTo(protagonist, "change:ready_for_showdown", this.renderReady);
 		this.render();
 	},
 	
@@ -111,7 +116,7 @@ app.UtilityButtonsView = Backbone.View.extend({
 			return this;
 		}
 		var status = app.statusModel.get("status");
-		if( status < DEALING || status >= SHOWDOWN_NOTIFICATION){
+		if( status < DISTRIBUTING_CARDS || status >= SHOWDOWN_NOTIFICATION){
 			return this;
 		}
 		if(this.model2.get("folded")){
@@ -122,12 +127,13 @@ app.UtilityButtonsView = Backbone.View.extend({
 	},
 	
 	renderReady: function(){
+		// should only be available once protagonist actually has hand
 		this.$readyButton.empty();
 		if(!this.model2){
 			return this;
 		}
 		var status = app.statusModel.get("status");
-		if( status < DEALING || status >= SHOWDOWN_NOTIFICATION){
+		if( status < DISTRIBUTING_CARDS || status >= SHOWDOWN_NOTIFICATION){
 			return this;
 		}
 		if(this.model2.get("folded")){
@@ -138,7 +144,7 @@ app.UtilityButtonsView = Backbone.View.extend({
 	},
 	
 	statusChanged: function(data){
-		if(data.get("status") >= DEALING && data.get("status") <= SHOWDOWN_NOTIFICATION){
+		if(data.get("status") >= DISTRIBUTING_CARDS && data.get("status") <= SHOWDOWN_NOTIFICATION){
 			this.renderReady();
 			this.renderFold();
 		}

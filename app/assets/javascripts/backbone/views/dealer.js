@@ -5,22 +5,29 @@ app.DealerView = Backbone.View.extend({
 	initialize: function(){
 		this.model = app.statusModel;
 		
-		_.bindAll(this, 'syncDriver', 'receivedStatus', 'render', 'correctMessage', 'statusChanged',  'driver');
+		_.bindAll(this, 'syncDriver', 'receivedStatus', 'renderMsg', 'correctMessage', 'statusChanged',  'driver',
+										'toggleAllowedToAdvanceStatus');
 		
 		this.listenTo(this.model, "change:timings", this.syncDriver);
 		this.listenTo(this.model, "change:status", this.statusChanged);
+		this.listenTo(app.pubSub, "allowedToAdvanceStatus", this.toggleAllowedToAdvanceStatus);
+		
+		this.$text = this.$("#announcements_text");
+		this.$spinner = this.$("#announcements_spinner");
 		
 		this.setupDispatcher();
-		this.counter=null;
+		this.counterID=null;
 		this.driverID=null;
-		this.lastCycleTime = null;
+		this.allowedToAdvanceStatus = true;
+		this.lastDisallowedStatus = null;
+		
+		this.syncDriver(this.model);
 	},
-
-	render: function(msg){
+	renderMsg: function(msg){
 		if(!msg){
 			msg = this.correctMessage();
 		}
-		this.$el.html("<p>"+msg+"</p>");
+		this.$text.html("<p>"+msg+"</p>");
 		return this;
 	},
 	
@@ -40,11 +47,6 @@ app.DealerView = Backbone.View.extend({
 	statusChanged: function(data){
 		var newStatus = data.get("status");
 		var msg = this.correctMessage();
-		if(newStatus == WAITING_TO_START){
-			if(this.lastCycleTime)
-				console.log("last cycle time: "+(new Date().getTime() / 1000 - this.lastCycleTime));
-			this.lastCycleTime = new Date().getTime() / 1000;
-		}
 		if(typeof msg == "string" && msg.length > 0 ){
 			app.pubSub.trigger("dealerMessage", {user: "Dealer", broadcast: msg});
 		}
@@ -55,38 +57,37 @@ app.DealerView = Backbone.View.extend({
 			msg = msg[0]+" See message log for details."
 		}
 		if(newStatus === DISTRIBUTING_CARDS){
-			console.log("dealer fetching fresh data as status is distributing cards.");
-			this.model.fetch();
+			this.model.carefulFetch();
 		}
 		if(newStatus === WAITING_FOR_CARD_SORTING || newStatus === ALMOST_SHOWDOWN){
-			clearInterval(this.counter);
-			this.counter = setInterval(this.render, 1000);
+			clearInterval(this.counterID);
+			this.counterID = setInterval(this.renderMsg, 1000);
 		}
 		if(newStatus === SEND_PLAYER_INFO){
-			console.log("dealer fetching fresh data as status is sending player info.");
-			this.model.fetch();
-			clearInterval(this.counter);
+			this.model.carefulFetch();
+			clearInterval(this.counterID);
 		}
-		
-		this.render(msg);
+		this.renderMsg(msg);
 	},
 	
 	receivedStatus: function(data){
-		console.log("got a websocket package: "+JSON.stringify(data));
-		this.model.set(data);
+		this.model.set({status: data.status, timings: data.timings});
 	},
 	
 	correctMessage: function(){
 		var msg;
 		switch(this.model.get("status")){
 			case STATUS_RESET:
-				msg = "";
+				msg = "Setting up the table...";
 				break;
 			case WAITING_TO_START:
 				msg = "The next hand will begin soon...";
 				break;
 			case DEALING:
-				msg = "New hand dealt.  Good luck!";
+				msg = "Shuffling the cards...";
+				break;
+			case DISTRIBUTING_CARDS:
+				msg = "Retrieving new hands from server...";
 				break;
 			case WAITING_FOR_CARD_SORTING:
 				msg = "Waiting for players to sort hands.  Showdown in "+this.timeUntilShowdown()+"s";
@@ -96,14 +97,14 @@ app.DealerView = Backbone.View.extend({
 				break;
 			case SHOWDOWN_NOTIFICATION:
 				if(this.model.get("next_showdown_time") - new Date().getTime() / 1000 > 5){
-					msg = "Everyone's ready to showdown - let's go!"
+					msg = "Everyone's ready to showdown - sending hand arrangements to server..."
 				}
 				else {
-					msg = "Time's up! Let me just gather up everyone's hands...";
+					msg = "Time's up! Sending hand arrangements to server...";
 				}
 				break;
 			case SEND_PLAYER_INFO:
-				msg = "On to the showdown, unless there are any invalid hands or folders...";
+				msg = "Gathering showdown results from server...";
 				break;
 			case INVALIDS_NOTIFICATION:
 				msg = this.foldersInvalidsDescription("invalid");
@@ -241,12 +242,12 @@ app.DealerView = Backbone.View.extend({
 				handDescription = "absolutely dominating this round by winning all 3 hands!";
 			}
 		}
-		return winner+" gets a bonus $"+contribution+" from each other player in the hand for ";//+handDescription;
+		return winner+" gets a bonus $"+contribution+" from each other player in the hand for "+handDescription;
 	},
 
 	// counter related code
 		
-	query_skip_status: function(status){
+	querySkipStatus: function(status){
 		if (status < SEND_PLAYER_INFO){
 			return false
 		}
@@ -266,42 +267,67 @@ app.DealerView = Backbone.View.extend({
 		}
 		return false
 	},
-	
 		
 	timeUntilShowdown: function(){
-		var time = this.model.get("timings")[SHOWDOWN_NOTIFICATION] -  Math.floor( new Date().getTime() / 1000 );
-		if(time < 0){
-			time = 0;
-		}
-		return time;
+		var nextStatus = this.model.get("timings")["next_status"];
+		var result = 0;
+		if(nextStatus === SHOWDOWN_NOTIFICATION)
+			result = this.model.get("timings")["next_status_time"] -  Math.floor( new Date().getTime() / 1000 );
+		else if(nextStatus === ALMOST_SHOWDOWN)
+			result = this.model.get("timings")["next_status_time"] + NOTIFICATIONS_DELAY[ALMOST_SHOWDOWN] -  Math.floor( new Date().getTime() / 1000 );
+		else if(nextStatus == WAITING_FOR_CARD_SORTING)
+			result = this.model.get("timings")["next_status_time"] + NOTIFICATIONS_DELAY[ALMOST_SHOWDOWN] + NOTIFICATIONS_DELAY[WAITING_FOR_CARD_SORTING] -  Math.floor( new Date().getTime() / 1000 );
+		if(result < 0)
+			result = 0;
+		return Math.floor(result);
 	},
 
 	driver: function(newStatus){
-		console.log("driver called at status "+newStatus+" at time "+(new Date().getTime() / 1000));
 		window.clearTimeout(this.driverID);
 		if(!newStatus || typeof newStatus == 'undefined')
-			newStatus = this.model.get("status")+1;
-		if(this.query_skip_status(newStatus)){
+			return;
+		if( ( newStatus > SEND_PLAYER_INFO && !app.playerInfoCollection.hasRankings()) ||
+		    ( newStatus == DISTRIBUTING_CARDS && app.playerInfoCollection.getProtagonistModel() && !app.playerInfoCollection.protagonistHasHand)){
+			this.allowedToAdvanceStatus = false;
+		}
+		else if(this.querySkipStatus(newStatus)){
 			this.driver(newStatus+1);
 			return;
 		}
-		else if (newStatus > OVERALL_GAINS_LOSSES){
+		else if (newStatus > FOLDERS_NOTIFICATION && app.playerInfoCollection.tooManyFolders()){
+			this.allowedToAdvanceStatus=true;
+			this.lastDisallowedStatus = null;
+			this.driver(STATUS_RESET);
+			return;
+		}
+		if (newStatus > OVERALL_GAINS_LOSSES){
+			this.allowedToAdvanceStatus=true;
+			this.lastDisallowedStatus = null;
 			this.driver(WAITING_TO_START);
 			return;
 		}
-		if(this.model.get("status") != newStatus){
+		if(this.allowedToAdvanceStatus  && ((newStatus > this.model.get("status")) || newStatus < DEALING ))
 			this.model.set("status", newStatus);
-		}
-		if(newStatus === BACK_HAND_SUGAR)
-			console.log("got through driver on backhand sugar");
+		else if (!this.allowedToAdvanceStatus && this.model.get("status") != newStatus)
+			this.lastDisallowedStatus = newStatus;
 		this.driverID=window.setTimeout(this.driver, NOTIFICATIONS_DELAY[newStatus]*1000, newStatus+1);
 	},
 	
 	syncDriver: function(data){
-		console.log("syncDriver called with data "+JSON.stringify(data));
 		window.clearTimeout(this.driverID);
 		this.driverID=window.setTimeout(this.driver, (data.get("timings")["next_status_time"] - new Date().getTime()/1000)*1000, data.get("timings")["next_status"]);
-		//console.log("new driverID is "+this.driverID);
+	},
+	
+	toggleAllowedToAdvanceStatus: function(newValue){
+		console.log("toggleAllowedToAdvanceStatus new value "+newValue);
+		this.allowedToAdvanceStatus = newValue;
+		if(newValue && this.lastDisallowedStatus){
+			while(this.querySkipStatus(this.lastDisallowedStatus)){
+				this.lastDisallowedStatus+=1;
+			}
+			this.model.set("status", this.lastDisallowedStatus);
+			this.lastDisallowedStatus = null;
+		}
 	},
 	
 	// hand queries
@@ -310,7 +336,6 @@ app.DealerView = Backbone.View.extend({
 		var result = false;
 		app.playerInfoCollection.each(function(player){
 			var rankings = player.get("rankings")[whichHand];
-			console.log("considering "+JSON.stringify(rankings)+" for "+whichHand);
 			if (_.size(rankings) > 0 &&
 			    rankings["sugars"] &&
 				  rankings["sugars"] > 0){

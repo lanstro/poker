@@ -62,15 +62,12 @@ class Table
 		@min_table_balance = 3 * (seats +1 )* @stakes
 		
 		@status = STATUS_RESET
-		@scheduler = Rufus::Scheduler.new
+		@scheduler = Rufus::Scheduler.new(:frequency => '0.02s')
 		@current_job = nil
 		
 		(CARDS_PER_DECK*@decks).times do |val|
 			@cards.push(Card.new(val+1))
 		end
-		
-		# testing
-		@last_cycle_time = nil
 		
 		fill_seats_with (@ais? "AIs" :"empty")
 		driver
@@ -119,15 +116,11 @@ class Table
 	
 	def add_human(user, amount)
 		index=0
-		puts "trying to add "+user.name
 		@seats.times do |seat|
-			puts "checking seat "+seat.to_s
 			if !@players[seat] or @players[seat].empty? or @players[seat].is_AI?
-				puts "adding human to seat "+seat.to_s
 				new_player = new_human(user, index, amount)
 				if(new_player)
 					@players[index] = new_player
-					puts "returning true"
 					return true
 				end
 				return false
@@ -205,9 +198,7 @@ class Table
 	
 	def driver
 		# skip the delay if there are no relevant sugars, or invalid hands / folding hands
-		puts "driver called at status "+@status.to_s+" at time "+Time.new.to_f.to_s
 		if (skip_status?)
-			puts "skipping status "+@status.to_s
 			@status += 1
 			driver
 			return
@@ -219,19 +210,10 @@ class Table
 			driver
 			return
 		end
-		
-		@current_job = @scheduler.in (NOTIFICATIONS_DELAY[@status]).to_s+'s', :job => true do
-			@status+=1
-			driver
-		end
 	
 		# for some statuses, need extra action
 		case @status
 			when WAITING_TO_START
-				if @last_cycle_time
-					puts "time since last cycle: "+(Time.new.to_f - @last_cycle_time).to_s
-				end
-				@last_cycle_time = Time.new.to_f
 				insert_remove_players
 			when DEALING
 				if enough_players?
@@ -240,6 +222,16 @@ class Table
 					@status = STATUS_RESET
 				end
 			when SEND_PLAYER_INFO
+				humans = humans_yet_to_post
+				if humans.size > 0
+					msg = humans.map(&:name).to_sentence
+					if humans.size > 1 
+						msg += " are lagging. Going ahead with auto-arranged hands..."
+					else
+						msg += " is lagging. Going ahead with auto-arranged hands..."
+					end
+					WebsocketRails[(@id.to_s+"_chat").to_sym].trigger(:client_send_message, {user: "dealer", broadcast: msg})
+				end
 				muck_invalids
 				calculate_folders
 				showdown(FRONT_HAND)
@@ -249,7 +241,6 @@ class Table
 			when FOLDERS_NOTIFICATION
 				payout(:hand, FOLDERS_INDEX)
 				if players_at_showdown.size < 2
-					puts "too many folders - restarting"
 					@players.each(&:new_hand_started)
 					@status = STATUS_RESET
 				end
@@ -264,13 +255,18 @@ class Table
 			when BACK_HAND_WINNER_ANNOUNCE
 				payout(:hand, BACK_HAND)
 			when BACK_HAND_SUGAR
-				puts "back hand sugar reached"
 				payout(:sugars, BACK_HAND)
 			when OVERALL_SUGAR
 				payout(:sugars, OVERALL_SUGAR_INDEX)
 			when OVERALL_GAINS_LOSSES
 				@players.each(&:new_hand_started)
 		end
+		
+		@current_job = @scheduler.in (NOTIFICATIONS_DELAY[@status]).to_s+'s', :job => true do
+			@status+=1
+			driver
+		end
+		
 	end
 	
 	# common queries
@@ -297,6 +293,10 @@ class Table
 	
 	def folders?
 		return players_in_hand.keep_if(&:folded)
+	end
+	
+	def humans_yet_to_post
+		return human_players_in_hand.keep_if { |player| !player.hand.posted }
 	end
 	
 	def skip_status?(status=@status)
@@ -481,12 +481,10 @@ class Table
 	end
 	
 	def sugar_payable?(which_hand)
-		puts "sugar_payable called for "+which_hand.to_s
 		players_at_showdown.each do |player|
 			if player.rankings[which_hand].size > 0 and
 			   player.rankings[which_hand][:sugars] and
 				 player.rankings[which_hand][:sugars] > 0
-				puts "about to return true because "+player.name+" had a ranking for hand "+which_hand.to_s+" of "+player.rankings[which_hand].inspect
 				return true
 			end
 		end
@@ -558,13 +556,10 @@ class Table
 	# external queries
 	
 	def players_info(user)
-		if @status < SHOWDOWN_NOTIFICATION
-			cards_public=false
-		else
-			cards_public=true
-		end
+		showdown_done = @status < SEND_PLAYER_INFO ? false : true
+		hand_dealt = @status < DEALING ? false : true
 		return @players.map do |player|
-			player.external_info({cards_public: cards_public, user: user})
+			player.external_info({showdown_done: showdown_done, user: user, hand_dealt: hand_dealt})
 		end
 	end
 	
@@ -575,6 +570,12 @@ class Table
 		
 		if !player
 			return "You are not playing."
+		end
+		
+		if @status >= SEND_PLAYER_INFO
+			return "Sorry, you're too late."
+		elsif @status < DEALING
+			return "The hands haven't even been dealt yet..."
 		end
 		
 		if !arrangement.kind_of?(Array) or

@@ -3,7 +3,7 @@ class Hand
 	SUGARS = [THREE_OF_A_KIND, 6, FOUR_OF_A_KIND]
 
 	attr_reader :owner, :arrangement, :table
-	attr_accessor :arranged
+	attr_accessor :posted
 	
   def my_logger
     @@my_logger ||= Logger.new("#{Rails.root}/log/my.log")
@@ -12,7 +12,7 @@ class Hand
 	def initialize(table=nil, owner=nil)
 		@owner = owner
 		@table = table
-		@arranged=false
+		@posted=false
 		reset_arrangement
 	end
 	
@@ -59,7 +59,7 @@ class Hand
 			return false
 		end
 
-		if !@arranged
+		if !@posted
 			@owner.sitting_out = true
 			auto_arrange
 			# player disconnected - make them sit out, and auto arrange this hand for now
@@ -97,7 +97,7 @@ class Hand
 			end
 			which_hand+=1
 		end
-		@arranged = true
+		@posted = true
 		evaluate_all_subhands
 		return @arrangement
 	end

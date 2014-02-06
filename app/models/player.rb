@@ -116,6 +116,8 @@ class Player
 		if @balance < @table.min_table_balance
 			if is_AI?
 				@balance+=@table.min_table_balance
+				WebsocketRails[(@table.id.to_s+"_chat").to_sym].trigger(:client_send_message, 
+					{user: "dealer", broadcast: @name+" has been busted, and buys in for an additional "+@table.min_table_balance.to_s})
 				#message table that AI has been busted
 			end
 		end
@@ -145,16 +147,17 @@ class Player
 	
 	def new_hand_started
 		@in_current_hand = !@sitting_out
+		muck
 		if @in_current_hand
 			@hands_sat_out = 0
 			@ready_for_showdown = false
 		else
 			@ready_for_showdown = true
 		end
-		muck
+		
 		@invalid = false
 		@folded = false
-		@hand.arranged = false
+		@hand.posted = false
 	end
 	
 	def is_invalid?
@@ -162,32 +165,43 @@ class Player
 	end
 	
 	def external_info(args)
-	
-		if @empty
-			arrangement = [ {}, {}, {}]
-			folded = false
-		elsif args[:cards_public] or args[:user] == @user
+		
+		if args[:showdown_done]  # ie after SEND_PLAYERS_INFO
 			arrangement = @hand.arrangement
+			rankings = @rankings
 			folded = @folded
-		else
-			arrangement = [ {}, {}, {}]
+		elsif !args[:hand_dealt] # ie before DEALING
+			arrangement = false
+			rankings = false
 			folded = false
+		else # ie in between
+			rankings = false
+			if human? and args[:user] == @user
+				arrangement = @hand.arrangement
+				folded = @folded
+			else
+				arrangement = false
+				folded = false
+			end
 		end
+		
 		result = {seat: 					 @seat,
 							name: 					 @name, 
 							avatar: 				 @avatar,
 							balance: 				 @balance, 
 							in_current_hand: @in_current_hand, 
 							arrangement:		 arrangement,
-							rankings:        @rankings,
+							rankings:        rankings,
 							folded:          folded,
 							invalid:         @invalid,
 							empty:           @empty}
-		if(args[:user] == @user)
+		if(human? and args[:user] == @user)
 			result.merge!({ protagonist:				true,
 											in_leave_queue: 		@table.leave_queue.include?(@user),
 											ready_for_showdown: @ready_for_showdown,
 											sitting_out:				@sitting_out })
+		else
+			result.merge!({ protagonist:  false})
 		end
 		return result
 	end

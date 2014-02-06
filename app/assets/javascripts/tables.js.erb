@@ -47,10 +47,10 @@ var	STATUS_RESET = 0,
 		OVERALL_GAINS_LOSSES = 20;
 		
 var NOTIFICATIONS_DELAY = <%= NOTIFICATIONS_DELAY %> ;
-// give the server some lagtime at 2 stages: 1. dealing cards and 2. calculating showdown
+// give the server some lagtime at 2 stages: 1. dealing cards and 2. calculating showdown - once status updates, 
+// it'll catch up anyway
 NOTIFICATIONS_DELAY[DEALING]+=2;
-NOTIFICATIONS_DELAY[SHOWDOWN_NOTIFICATION]+=2;
-
+NOTIFICATIONS_DELAY[SHOWDOWN_NOTIFICATION]+=3;
 		
 $(document).ready(function(){
 
@@ -59,18 +59,16 @@ $(document).ready(function(){
 		app.pubSub = _.extend({}, Backbone.Events);
 		app.statusModel = new app.Dealer();
 		app.playerInfoCollection = new app.Opponents();
-
-		app.a = new app.DealerView();
-		app.b = new app.ChatView();
 		
-		app.protagonistModel = function(){
-			return app.playerInfoCollection.getProtagonistModel();
-		}
-		
-		app.c = new app.OpponentsView();
-		app.g = new app.UtilityButtonsView();
-		
-
+		$.when(app.statusModel.fetch(), app.playerInfoCollection.fetch()).done(function(){
+			app.dealerView = new app.DealerView();
+			app.chatView = new app.ChatView();
+			app.opponentsView = new app.OpponentsView();
+			app.utilityButtonsView = new app.UtilityButtonsView();
+			app.protagonistHandView = new app.ProtagonistHandView();
+			app.sortButtonsView = new app.SortButtonsView();
+		});
 	}
 	
 });
+
