@@ -3,37 +3,47 @@ var app = app || {};
 app.ProtagonistHandView = Backbone.View.extend({
 	el: '#protagonist_cards',
 	initialize: function(){
-		var col = new app.Hand();
-		
-		this.collection= col;
-		_.bindAll(this, 'render');
 
-		this.listenTo(col, "sort", this.sorted);
+		_.bindAll(this, 'render', 'toggleProtagonist');
 		
-		console.log("cards right now are "+JSON.stringify(app.playerInfoCollection.getProtagonistModel().cards()));
-		col.reset(app.playerInfoCollection.getProtagonistModel().cards());
-		
-		this.listenTo(app.statusModel, "change:status", this.statusChanged);
-		this.listenTo(app.pubSub, "blankClicked", this.blankClicked);
-		this.listenTo(app.pubSub, "sortByVal", this.collection.sortByVal);
-		this.listenTo(app.pubSub, "sortBySuit", this.collection.sortBySuit);
-		
-		this.listenTo(app.playerInfoCollection.getProtagonistModel(), "change:arrangement", this.changedArrangement);
-		
-		
-		this.listenTo(app.pubSub, "swapCards", this.swapCards);
-		this.sorted();
 		this.retries = 0;
+		this.toggleProtagonist();
+	},
+
+	toggleProtagonist: function(arg){
+		var protagonist = app.playerInfoCollection.getProtagonistModel();
+		console.log("hand listener heard protagonist change with arg "+JSON.stringify(arg));
+		if(protagonist){
+			this.collection= new app.Hand();
+			this.listenTo(this.collection, "sort", this.sorted);
+			this.collection.reset(protagonist.cards());
+			
+			this.listenTo(app.statusModel, "change:status", this.statusChanged);
+			
+			this.listenTo(app.pubSub, "blankClicked", this.blankClicked);
+			this.listenTo(app.pubSub, "sortByVal", this.collection.sortByVal);
+			this.listenTo(app.pubSub, "sortBySuit", this.collection.sortBySuit);
+			
+			this.listenTo(app.playerInfoCollection.getProtagonistModel(), "change:arrangement", this.changedArrangement);
+			
+			this.listenTo(app.pubSub, "swapCards", this.swapCards);
+			this.listenTo(app.playerInfoCollection, "change:protagonist", this.toggleProtagonist);
+			
+			this.sorted();
+		}
+		else {
+			this.stopListening();
+			delete this.collection;
+			this.collection = null;
+			this.listenTo(app.playerInfoCollection, "change:protagonist", this.toggleProtagonist);
+		}
 	},
 	
 	changedArrangement:function(data){
-		var protagonist = app.playerInfoCollection.getProtagonistModel();
-		if(!protagonist){
-			this.remove();
-			delete this;
+		console.log("protagonist arrangement change detected");
+		if(!data.get("protagonist"))
 			return;
-		}
-		var cards = protagonist.cards();
+		var cards = app.playerInfoCollection.getProtagonistModel().cards();
 		if(cards){
 			this.collection.reset(cards);
 			this.sorted();
@@ -72,6 +82,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 	},
 	
 	sorted: function(){
+		console.log("protagonist hand sorted");
 		var row=0;
 		var cards_in_current_row=0;
 		var layout=[3, 5, 5];
@@ -102,15 +113,18 @@ app.ProtagonistHandView = Backbone.View.extend({
 				this.render();
 				break;
 		}
-		if (newStatus === SHOWDOWN_NOTIFICATION){
+		if (newStatus === SHOWDOWN_NOTIFICATION)
 			this.postHand();
-		}
-		if (newStatus === OVERALL_GAINS_LOSSES){
+		if (newStatus === OVERALL_GAINS_LOSSES)
 			this.collection.reset();
-		}
 	},
 	
 	render: function(){
+		
+		if(!this.collection){
+			return this;
+		}
+	
 		var status = app.statusModel.get("status");
 		this.$el.empty();
 		
@@ -227,7 +241,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 		a.set({ position: b.get('position'), row: b.get('row'), highlighted: false });
 		b.set({ position: aPosition, row: aRow, highlighted: false });
 	},
-	
+
 	swapCards: function(){
 		
 		var grid = [ [], [], [] ];
@@ -303,7 +317,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 		}, this);
 		this.render();
 	},
-	
+/*
 	handNumbersValid: function(whichHand){
 	
 		var positions = [0, 0, 0];
@@ -333,13 +347,5 @@ app.ProtagonistHandView = Backbone.View.extend({
 		}
 		return true;
 	},
-	
-	folded: function(data){
-		if(data.get("folded") == true){
-			this.collection.reset();
-			this.render();
-		}
-	}
-
-
+*/
 });

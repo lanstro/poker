@@ -174,6 +174,8 @@ app.PlayerView = Backbone.View.extend({
 			else if (status >= SHOWING_DOWN_BACK_NOTIFICATION && status <= BACK_HAND_SUGAR){
 				index = BACK_HAND;
 			}
+			console.log("about to render "+JSON.stringify(arrangement));
+			console.log("about to render "+JSON.stringify(arrangement[index]));
 			_.each(arrangement[index]["cards"], function(card){
 				this.renderCard(card);
 			}, this);

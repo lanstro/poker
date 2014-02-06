@@ -22,6 +22,11 @@ app.DealerView = Backbone.View.extend({
 		this.lastDisallowedStatus = null;
 		
 		this.syncDriver(this.model);
+		this.renderMsg();
+		if(this.model.get("status") === WAITING_FOR_CARD_SORTING || this.model.get("status") === ALMOST_SHOWDOWN)
+			this.counterID = setInterval(this.renderMsg, 1000);
+		else
+			this.counterID=null;
 	},
 	renderMsg: function(msg){
 		if(!msg){
@@ -45,7 +50,9 @@ app.DealerView = Backbone.View.extend({
 	},
 	
 	statusChanged: function(data){
+		
 		var newStatus = data.get("status");
+		console.log("newStatus of "+newStatus+" hit at "+(new Date().getTime()/1000));
 		var msg = this.correctMessage();
 		if(typeof msg == "string" && msg.length > 0 ){
 			app.pubSub.trigger("dealerMessage", {user: "Dealer", broadcast: msg});
@@ -75,78 +82,78 @@ app.DealerView = Backbone.View.extend({
 	},
 	
 	correctMessage: function(){
-		var msg;
+		var message;
+		
 		switch(this.model.get("status")){
 			case STATUS_RESET:
-				msg = "Setting up the table...";
+				message = "Setting up the table...";
 				break;
 			case WAITING_TO_START:
-				msg = "The next hand will begin soon...";
+				message = "The next hand will begin soon...";
 				break;
 			case DEALING:
-				msg = "Shuffling the cards...";
+				message = "Shuffling the cards...";
 				break;
 			case DISTRIBUTING_CARDS:
-				msg = "Retrieving new hands from server...";
+				message = "Retrieving new hands from server...";
 				break;
 			case WAITING_FOR_CARD_SORTING:
-				msg = "Waiting for players to sort hands.  Showdown in "+this.timeUntilShowdown()+"s";
+				message = "Waiting for players to sort hands.  Showdown in "+this.timeUntilShowdown()+"s";
 				break;
 			case ALMOST_SHOWDOWN:
-				msg = "Showdown in "+this.timeUntilShowdown()+"...";
+				message = "Showdown in "+this.timeUntilShowdown()+"...";
 				break;
 			case SHOWDOWN_NOTIFICATION:
-				if(this.model.get("next_showdown_time") - new Date().getTime() / 1000 > 5){
-					msg = "Everyone's ready to showdown - sending hand arrangements to server..."
-				}
-				else {
-					msg = "Time's up! Sending hand arrangements to server...";
-				}
+				if(this.model.get("next_showdown_time") - new Date().getTime() / 1000 > 5)
+					message = "Everyone's ready to showdown - sending hand arrangements to server..."
+				else
+					message = "Time's up! Sending hand arrangements to server...";
 				break;
 			case SEND_PLAYER_INFO:
-				msg = "Gathering showdown results from server...";
+				message = "Gathering showdown results from server...";
 				break;
 			case INVALIDS_NOTIFICATION:
-				msg = this.foldersInvalidsDescription("invalid");
+				console.log("invalids notification message calculating...");
+				message = this.foldersInvalidsDescription("invalid");
 				break;
 			case FOLDERS_NOTIFICATION:
-				msg = this.foldersInvalidsDescription("folded");
+				message = this.foldersInvalidsDescription("folded");
 				break;
 			case SHOWING_DOWN_FRONT_NOTIFICATION:
-				msg = "First, show the three front cards. Highest hand wins.";
+				message = "First, show the three front cards. Highest hand wins.";
 				break;
 			case FRONT_HAND_WINNER_ANNOUNCE:
-				msg = this.allHandsAnnounce(FRONT_HAND);
+				message = this.allHandsAnnounce(FRONT_HAND);
 				break;
 			case FRONT_HAND_SUGAR:
-				msg = this.sugarAnnounce(FRONT_HAND);
+				message = this.sugarAnnounce(FRONT_HAND);
 				break;
 			case SHOWING_DOWN_MID_NOTIFICATION:
-				msg = "Next, show the middle five cards. Lowest hand wins.";
+				message = "Next, show the middle five cards. Lowest hand wins.";
 				break;
 			case MID_HAND_WINNER_ANNOUNCE:
-				msg = this.allHandsAnnounce(MID_HAND);
+				message = this.allHandsAnnounce(MID_HAND);
 				break;
 			case MID_HAND_SUGAR:
-				msg = this.sugarAnnounce(MID_HAND);
+				message = this.sugarAnnounce(MID_HAND);
 				break;		
 			case SHOWING_DOWN_BACK_NOTIFICATION:
-				msg = "Next, show the back five cards. Highest hand wins.";
+				message = "Next, show the back five cards. Highest hand wins.";
 				break;
 			case BACK_HAND_WINNER_ANNOUNCE:
-				msg = this.allHandsAnnounce(BACK_HAND);
+				message = this.allHandsAnnounce(BACK_HAND);
 				break;
 			case BACK_HAND_SUGAR:
-				msg = this.sugarAnnounce(BACK_HAND);
+				message = this.sugarAnnounce(BACK_HAND);
 				break;
 			case OVERALL_SUGAR:
-				msg = this.sugarAnnounce(OVERALL_SUGAR_INDEX);
+				message = this.sugarAnnounce(OVERALL_SUGAR_INDEX);
 				break;
 			case OVERALL_GAINS_LOSSES:
-				msg = "Round completed.  Here's a summary of the gains and losses...";
+				message = "Round completed.  Here's a summary of the gains and losses...";
 				break;
 		}
-		return msg;
+		return message;
 	},
 	
 	invalidOrFoldedPlayers: function(foldedOrInvalid){
@@ -161,6 +168,7 @@ app.DealerView = Backbone.View.extend({
 	
 	foldersInvalidsDescription: function(foldedOrInvalid){
 		var players = this.invalidOrFoldedPlayers(foldedOrInvalid);
+		console.log("got here");
 		var msg = "";
 		if(players.length > 1){
 			msg= players.slice(0, players.length - 1).join(', ') + " and " + players.slice(-1);
@@ -253,8 +261,10 @@ app.DealerView = Backbone.View.extend({
 		}
 		switch (status) {
 			case INVALIDS_NOTIFICATION:
+				console.log("querySkipStatus asked about invalids");
 				return this.invalidOrFoldedPlayers("invalid").size == 0;
 			case FOLDERS_NOTIFICATION:
+				console.log("querySkipStatus asked about folders");
 				return this.invalidOrFoldedPlayers("folded").size == 0;
 			case FRONT_HAND_SUGAR:
 				return !this.sugar_payable(FRONT_HAND);
@@ -283,6 +293,7 @@ app.DealerView = Backbone.View.extend({
 	},
 
 	driver: function(newStatus){
+		console.log("driver wants to change to "+newStatus+" at "+(new Date().getTime()/1000));
 		window.clearTimeout(this.driverID);
 		if(!newStatus || typeof newStatus == 'undefined')
 			return;
@@ -291,13 +302,14 @@ app.DealerView = Backbone.View.extend({
 			this.allowedToAdvanceStatus = false;
 		}
 		else if(this.querySkipStatus(newStatus)){
+			console.log("skipping status "+newStatus);
 			this.driver(newStatus+1);
 			return;
 		}
 		else if (newStatus > FOLDERS_NOTIFICATION && app.playerInfoCollection.tooManyFolders()){
 			this.allowedToAdvanceStatus=true;
 			this.lastDisallowedStatus = null;
-			this.driver(STATUS_RESET);
+			this.driver(WAITING_TO_START);
 			return;
 		}
 		if (newStatus > OVERALL_GAINS_LOSSES){
@@ -314,12 +326,12 @@ app.DealerView = Backbone.View.extend({
 	},
 	
 	syncDriver: function(data){
+		console.log("syncDriver got "+JSON.stringify(data));
 		window.clearTimeout(this.driverID);
 		this.driverID=window.setTimeout(this.driver, (data.get("timings")["next_status_time"] - new Date().getTime()/1000)*1000, data.get("timings")["next_status"]);
 	},
 	
 	toggleAllowedToAdvanceStatus: function(newValue){
-		console.log("toggleAllowedToAdvanceStatus new value "+newValue);
 		this.allowedToAdvanceStatus = newValue;
 		if(newValue && this.lastDisallowedStatus){
 			while(this.querySkipStatus(this.lastDisallowedStatus)){

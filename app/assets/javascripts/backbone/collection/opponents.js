@@ -65,12 +65,14 @@ app.Opponents = Backbone.Collection.extend({
 				data.each(function(player){
 					if(type == "rankings"){
 						if(!player.attributes["rankings"]){
+							console.log("tried to get showdown rankings, but too early");
 							tooEarly = true;
 						}
 					}
 					else if(type == "protagonist_cards"){
 						if(player.attributes["protagonist"] && !player.attributes["arrangement"]){
 							tooEarly = true;
+							console.log("tried to get protagonist cards, but too early");
 						}
 					}
 				});
@@ -78,6 +80,7 @@ app.Opponents = Backbone.Collection.extend({
 					setTimeout(that.retryFetch, 1000, type);
 				}
 				else{
+					console.log("opponentsView fetch success");
 					app.pubSub.trigger("allowedToAdvanceStatus", true);
 					$("#announcements").removeClass("loading");
 				}

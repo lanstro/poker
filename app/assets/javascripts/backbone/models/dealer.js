@@ -29,12 +29,18 @@ app.Dealer = Backbone.Model.extend ({
 				// if the server's next_status is less than or equal to client's current status, it means
 				// javascript is ahead - keep redoing this ajax until it's no longer the case
 				that.set("in_join_queue", data["in_join_queue"]);
-				if(data["timings"]["next_status"] <= that.get("status"))
+				if(data["timings"]["next_status"] <= that.get("status")){
+					console.log("table status ahead of server, wait for server to catch up");
 					window.setTimeout(that.carefulFetch, 1000);
-				else if(data["status"] > that.get("status"))
+				}
+				else if(data["status"] > that.get("status")){
+					console.log("table behind server - fast forward to server's status");
 					that.set(data);
-				else
+				}
+				else{
 					that.set("timings", data["timings"]);
+					console.log("status is synched with server, let's just readjust timings");
+				}
 			}
 		});
 	}

@@ -3,8 +3,22 @@ var app = app || {};
 app.SortButtonsView = Backbone.View.extend({
 	el: '#sort_buttons',
 	initialize: function(){
-		this.render();
+		this.listenTo(app.playerInfoCollection, "change:protagonist", this.toggleProtagonist);
+		this.toggleProtagonist();
 	},
+	
+	toggleProtagonist: function(arg){
+		var protagonist = app.playerInfoCollection.getProtagonistModel();
+		if(protagonist){
+			console.log("rendering sorting buttons");
+			this.render();
+		}
+		else{
+			console.log("destroying sorting buttons");
+			this.$el.empty();
+		}
+	},
+	
 	events: {
 		'click #sort_by_val': "sortByVal",
 		'click #sort_by_suit': "sortBySuit",

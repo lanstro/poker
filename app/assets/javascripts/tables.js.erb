@@ -49,9 +49,11 @@ var	STATUS_RESET = 0,
 var NOTIFICATIONS_DELAY = <%= NOTIFICATIONS_DELAY %> ;
 // give the server some lagtime at 2 stages: 1. dealing cards and 2. calculating showdown - once status updates, 
 // it'll catch up anyway
-NOTIFICATIONS_DELAY[DEALING]+=2;
-NOTIFICATIONS_DELAY[SHOWDOWN_NOTIFICATION]+=3;
-		
+// new
+NOTIFICATIONS_DELAY[DEALING]+=1;
+NOTIFICATIONS_DELAY[SHOWDOWN_NOTIFICATION]+=1;
+console.log(NOTIFICATIONS_DELAY)
+
 $(document).ready(function(){
 
 	// replace this with better asset pipeline management

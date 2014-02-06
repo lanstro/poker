@@ -82,9 +82,18 @@ class Hand
 
 	def auto_arrange
 		temp = cards.sort_by! { |card| card.value_comparison }
-		@arrangement = [ {cards: cards[5..7], value: nil, human_name: nil },
-										 {cards: cards[0..4], value: nil, human_name: nil  },
-										 {cards: cards[8..12], value: nil, human_name: nil  } ]
+		reset_arrangement
+		count = 0
+		temp.each do |card|
+			if count < 5
+				@arrangement[MID_HAND][:cards].push card
+			elsif count < 8
+				@arrangement[FRONT_HAND][:cards].push card
+			else
+				@arrangement[BACK_HAND][:cards].push card
+			end
+			count+=1
+		end
 	end
 
 	def post_protagonist_cards(arrangement)

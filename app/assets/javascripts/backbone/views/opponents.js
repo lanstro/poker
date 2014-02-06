@@ -51,7 +51,6 @@ app.OpponentsView = Backbone.View.extend({
 				model: player
 			}));
 		}, this);
-		console.log(this.subViews);
 	},
 
 	updatePlayersInfo: function(data){
