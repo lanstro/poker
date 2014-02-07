@@ -19,6 +19,7 @@ app.PlayerView = Backbone.View.extend({
 		
 		this.listenTo(app.statusModel, "change:status", this.statusChanged);
 		this.listenTo(this.model, "change:name", this.render);
+		this.listenTo(this.model, "change:in_current_hand", this.renderHand);
 	},
 	
 	render: function(){

@@ -36,6 +36,12 @@
 					<%= image_tag("other/swap_cards.png", alt: "swap cards", class: "sort_button", id: "swap_cards") %>
 				</div>
 				<div id="chat_box">
+					<textarea id="log" readonly rows=7></textarea>
+					</textarea>
+					<form id="input">
+							<input type="text" id="message_input" autocomplete="off">
+							<input type="submit" class = "btn" id="send_button" value="Send">
+					</form>
 				</div>
 				<div id="utility_buttons">
 					<ul>
@@ -81,22 +87,13 @@
 	</script>
 	
 	<script type="text/template" id="card_template">
-		<img alt= <@= human_description @> src= <@= $.parseJSON('<%= card_file_paths.to_json %>'.replace(/&quot;/g, '"'))[human_description] @> >
+		<img draggable = "true" alt= <@= human_description @> src= <@= $.parseJSON('<%= card_file_paths.to_json %>'.replace(/&quot;/g, '"'))[human_description] @> >
 	</script>
 	
 	<script type = "text/template" id="protagonist_card_values_template">
 		<p class="protagonist_card_description"><%%= descriptions[FRONT_HAND] %></p>
 		<p class="protagonist_card_description"><%%= descriptions[MID_HAND] %></p>
 		<p class="protagonist_card_description"><%%= descriptions[BACK_HAND] %></p>
-	</script>
-	
-	<script type = "text/template" id="chat_template">
-		<textarea id="log" readonly rows=7></textarea>
-		</textarea>
-		<form id="input">
-				<input type="text" id="message_input" autocomplete="off">
-				<input type="submit" class = "btn" id="send_button" value="Send">
-		</form>
 	</script>
 	
 	<script type = "text/template" id="hand_ranking_button_template">

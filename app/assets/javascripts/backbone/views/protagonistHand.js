@@ -4,7 +4,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 	el: '#protagonist_cards',
 	initialize: function(){
 
-		_.bindAll(this, 'render', 'toggleProtagonist');
+		_.bindAll(this, 'render', 'toggleProtagonist', 'dragDropFinished');
 		
 		this.retries = 0;
 		this.toggleProtagonist();
@@ -27,6 +27,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 			this.listenTo(app.playerInfoCollection.getProtagonistModel(), "change:arrangement", this.changedArrangement);
 			
 			this.listenTo(app.pubSub, "swapCards", this.swapCards);
+			this.listenTo(app.pubSub, "dragDropFinished", this.dragDropFinished);
 			this.listenTo(app.playerInfoCollection, "change:protagonist", this.toggleProtagonist);
 			
 			this.sorted();
@@ -234,6 +235,14 @@ app.ProtagonistHandView = Backbone.View.extend({
 			model:card,
 		});
 		this.$el.prepend(cardView.render().$el);
+	},
+	
+	dragDropFinished: function(a, b){
+		console.log("dragdropfinished called"+JSON.stringify(a)+JSON.stringify(b));
+		a=this.collection.where({val: parseInt(a)})[0];
+		console.log(a);
+		this.switchCards(a, b);
+		this.render();
 	},
 		
 	switchCards: function(a, b){

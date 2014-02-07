@@ -200,7 +200,8 @@ app.UtilityButtonsView = Backbone.View.extend({
 		var that = this;
 		$.getJSON( $('#table').data('table_id')+'/leave', function(response){
 			bootbox.alert(response.response);
-			that.model2.set("in_leave_queue", response.in_leave_queue);
+			if(that.model2)
+				that.model2.set("in_leave_queue", response.in_leave_queue);
 			that.model.set("in_join_queue", false);
 		});
 	},

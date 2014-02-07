@@ -4,18 +4,13 @@ app.ChatView = Backbone.View.extend({
 	el: '#chat_box',
 	initialize: function(){
 		_.bindAll(this, 'receivedChat');
-		this.render();
+		this.$el.css({display:"block"});
 		this.listenTo(app.pubSub, "messageReceived", this.addMessage);
 		this.setupDispatcher();
 	},
 	events: {
 		'submit #input': "submitted",
 	},
-	render: function(){
-		this.$el.html( $('#chat_template').html() );
-		return this;
-	},
-	
 	addMessage: function(data){
 		var $log = $('#log');
 		$log.val($log.val()+data.user+": "+data.broadcast+"\n");
