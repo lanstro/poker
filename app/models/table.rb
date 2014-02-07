@@ -241,6 +241,7 @@ class Table
 				calculate_overall_sugar
 			when FOLDERS_NOTIFICATION
 				payout(:hand, FOLDERS_INDEX)
+			when SHOWING_DOWN_FRONT_NOTIFICATION
 				if players_at_showdown.size < 2
 					@players.each(&:new_hand_started)
 					@status = STATUS_RESET
@@ -297,7 +298,7 @@ class Table
 	end
 	
 	def humans_yet_to_post
-		return human_players_in_hand.keep_if { |player| !player.hand.posted }
+		return human_players_in_hand.keep_if { |player| !player.hand.posted && !player.folded}
 	end
 	
 	def skip_status?(status=@status)

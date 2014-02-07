@@ -33,8 +33,10 @@ app.PlayerView = Backbone.View.extend({
 		this.renderDashboard();
 		this.renderHand();
 		this.renderHandRanking();
+		
 		this.$playerInfo = this.$(".player_info");
 		this.renderPInfo();
+		
 		return this;
 	},
 	
@@ -101,13 +103,11 @@ app.PlayerView = Backbone.View.extend({
 				case OVERALL_GAINS_LOSSES:
 					for( var index = FRONT_HAND; index <= OVERALL_SUGAR_INDEX; index++){
 						var temp = this.model.get("rankings")[index]["hand"];
-						if(typeof temp == 'number'){
+						if(typeof temp == 'number')
 							amount+=temp;
-						}
 						temp = this.model.get("rankings")[index]["sugars"];
-						if(typeof temp == 'number'){
+						if(typeof temp == 'number')
 							amount+=temp;
-						}
 					}
 					break;
 			}
@@ -174,8 +174,6 @@ app.PlayerView = Backbone.View.extend({
 			else if (status >= SHOWING_DOWN_BACK_NOTIFICATION && status <= BACK_HAND_SUGAR){
 				index = BACK_HAND;
 			}
-			console.log("about to render "+JSON.stringify(arrangement));
-			console.log("about to render "+JSON.stringify(arrangement[index]));
 			_.each(arrangement[index]["cards"], function(card){
 				this.renderCard(card);
 			}, this);
@@ -188,7 +186,6 @@ app.PlayerView = Backbone.View.extend({
 		var cardView=new app.CardView({
 			model:new app.Card(card),
 		});
-
 		this.$cards.append(cardView.render().$el);
 	},
 	
@@ -210,7 +207,6 @@ app.PlayerView = Backbone.View.extend({
 		if(rank > 0){
 			this.$handRanking.html(this.handRankingTemplate({rank: rank}));
 		}
-		
 		return this;
 	},
 	

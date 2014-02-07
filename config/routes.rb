@@ -8,10 +8,11 @@ Poker::Application.routes.draw do
 	resources :users
 	resources :sessions, only: [:new, :create, :destroy]
 	
+	match '/tables/server_time', to: 'tables#server_time', via: 'get'
+	
 	resources :tables do
 		member do
 			get 'players_info'
-			get 'protagonist_cards'
 			post 'post_protagonist_cards'
 			get 'status'
 			post 'join'
@@ -20,6 +21,7 @@ Poker::Application.routes.draw do
 			get 'fold'
 			get 'sitout'
 			get 'join_table_details'
+			
 		end
 	end
 	

@@ -2,40 +2,49 @@ var app = app || {};
 
 app.Dealer = Backbone.Model.extend ({
 	initialize: function(){
-		_.bindAll(this, "carefulFetch");
+		_.bindAll(this, "carefulFetch", "testTime");
 		this.url=$("#table").data("table_id")+'/status';
-		this.set("retries", 0);
+		this.retries = 0;
+		this.serverTimeOffset = 0;
+		this.offsets=[];
+		setTimeout(this.testTime, 3000);
+		this.alreadyCarefulFetching=false;
 	},
 	
 	carefulFetch: function(){
 		var that = this;
-		var retries = that.get("retries");
+		if(that.alreadyCarefulFetching)
+			return;
+		that.alreadyCarefulFetching=true;
 		$.ajax({
 			type: "GET",
 			url: that.url,
 			dataType: "json",
 			contentType: 'application/json',
-			timeout: 2000 + retries*1000,
+			timeout: 2000 + that.retries*1000,
 			error: function(xhr, textStatus, errorThrown){
+				that.alreadyCarefulFetching=false;
 				if(textStatus == "timeout"){
+					that.retries+=1
+					if(that.retries + 1 > 4){
+						bootbox.alert("We have failed repeatedly to communicate with the server.  We recommend you try again some other time.");
+						return;
+					}
 					that.carefulFetch();
-					that.set("retries", retries+1);
-					if(retries + 1 > 4)
-						bootbox.alert("Your connection to the server is very poor.  We recommend you try again some other time.");
 				}
 			},
 			success: function(data){
-				that.set("retries", 0);
-				// if the server's next_status is less than or equal to client's current status, it means
-				// javascript is ahead - keep redoing this ajax until it's no longer the case
+				that.alreadyCarefulFetching=false;
+				that.retries=0;
 				that.set("in_join_queue", data["in_join_queue"]);
 				if(data["timings"]["next_status"] <= that.get("status")){
 					console.log("table status ahead of server, wait for server to catch up");
 					window.setTimeout(that.carefulFetch, 1000);
 				}
 				else if(data["status"] > that.get("status")){
-					console.log("table behind server - fast forward to server's status");
-					that.set(data);
+					console.log("table behind server - let's ask driver if we're allowed to go to new status yet, and let syncDriver know when next timing is supposed to be");
+					that.trigger("tryToAdvanceStatus", data["status"]);
+					that.set("timings", data["timings"]);
 				}
 				else{
 					that.set("timings", data["timings"]);
@@ -43,5 +52,29 @@ app.Dealer = Backbone.Model.extend ({
 				}
 			}
 		});
-	}
+	},
+
+	testTime: function() {
+
+		if(this.offsets.length >= 10){
+			var minOffset=this.offsets[0];
+			_.each(this.offsets, function(offset){
+				if(Math.abs(offset) < Math.abs(minOffset))
+					minOffset = offset;
+			});
+			this.serverTimeOffset = minOffset;
+			this.offsets=[];
+			return;
+		}
+		else{
+			var that = this;
+			var start = new Date().getTime() / 1000;
+			$.getJSON('server_time', function(serverTime){
+				var end = new Date().getTime() / 1000;
+				that.offsets.push((start + end)/2 - serverTime);
+				setTimeout(that.testTime, 1000);
+			});
+		}
+	},
+
 });

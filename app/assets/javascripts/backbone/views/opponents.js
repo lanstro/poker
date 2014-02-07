@@ -55,11 +55,9 @@ app.OpponentsView = Backbone.View.extend({
 
 	updatePlayersInfo: function(data){
 		
-		// get updates on what players are on the table
 		if(data.get("status") === DISTRIBUTING_CARDS)
 			this.collection.retryFetch("protagonist_cards");
-		
-		if(data.get("status") === SEND_PLAYER_INFO)
+		else if(data.get("status") === SEND_PLAYER_INFO)
 			this.collection.retryFetch("rankings");
 	}
 	

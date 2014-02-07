@@ -3,8 +3,8 @@ var app = app || {};
 app.ChatView = Backbone.View.extend({
 	el: '#chat_box',
 	initialize: function(){
+		_.bindAll(this, 'receivedChat');
 		this.render();
-		this.listenTo(app.pubSub, "dealerMessage", this.addMessage);
 		this.listenTo(app.pubSub, "messageReceived", this.addMessage);
 		this.setupDispatcher();
 	},
@@ -28,12 +28,19 @@ app.ChatView = Backbone.View.extend({
 	
 	setupDispatcher: function(){
 		if(!app.dispatcher){
-			app.dispatcher = app.dispatcher || new WebSocketRails($('#table').data('uri'));
+			app.dispatcher = new WebSocketRails($('#table').data('uri'));
 			app.dispatcher = app.dispatcher.subscribe($("#table").data("table_id")+'_chat');
 		}
+		
+		app.dispatcher.bind('client_send_message', this.receivedChat);
+
 		app.dispatcher.sendMessage = function (msg){
 			app.dispatcher.trigger('client_send_message', {user: "test user", broadcast: msg});
 		};
+	},
+	
+	receivedChat: function(data){
+		this.addMessage(data);
 	},
 	
 	submitted: function(e){

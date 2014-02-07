@@ -10,7 +10,7 @@ app.CardView = Backbone.View.extend({
 			escape: 		 /\<\@\-(.+?)\@\>/gim
 		};
 		this.template=_.template($('#card_template').html());
-		this.listenTo(this.model, "all", this.filterHighlighted);
+		this.listenTo(this.model, "change:highlighted", this.filterHighlighted);
 	},
 	
 	events: {
@@ -25,16 +25,13 @@ app.CardView = Backbone.View.extend({
 	},
 	
 	filterHighlighted: function(arg){
-		if(arg=="change:highlighted"){
-			this.$el.children(":first").toggleClass("highlighted");
-		}
+		this.$el.children(":first").toggleClass("highlighted");
 	},
 	
 	toggleHighlight: function(obj){
 	
-		if(app.statusModel.get("status") < DEALING || app.statusModel.get("status") > ALMOST_SHOWDOWN){
+		if(app.statusModel.get("status") < DEALING || app.statusModel.get("status") > ALMOST_SHOWDOWN)
 			return;
-		}
 	
 		if(this.isBlank()){
 			if( $(".highlighted").length > 0 ){
@@ -46,22 +43,12 @@ app.CardView = Backbone.View.extend({
 		}
 	},
 	
-	swapPosition: function(otherCard){
-		
-	},
-	
 	toggleHighlighted: function(){
-		if(this.model.get('highlighted')){
-			this.model.set('highlighted', false);
-		}
-		else{
-			this.model.set('highlighted', true);
-		}
+		this.model.set('highlighted', !this.model.get('highlighted'));
 	},
 
 	render: function(){
-	  var val = this.model.toJSON();
-		this.$el.html(this.template(val));
+		this.$el.html(this.template({human_description: this.model.get("human_description")}));
 		return this;
 	}
 	

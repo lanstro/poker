@@ -56,11 +56,12 @@
 			max-width:60%;
 			.table_avatar{
 				width:40%;
-				border:1px grey solid;
+				border:1px white solid;
 			}
 			.player_info{
 				width:30%;
 				margin:2% 3%;
+				position:absolute;
 			}
 			.player_info p{
 				padding:0px;
@@ -81,7 +82,7 @@
 		}
 	}
 	.opponent:nth-child(even){
-		.opponent_dashboard, .table_avatar, .player_info, .opponent_cards, .hand_ranking, .covered_cards{
+		.opponent_dashboard, .table_avatar, .opponent_cards, .hand_ranking, .covered_cards{
 			text-align:right;
 			float:right;
 		}
@@ -91,11 +92,13 @@
 		}
 		.hand_ranking{
 			right:25%;
-			
+		}
+		.player_info {
+			right:10%;
 		}
 	}
 	.opponent:nth-child(odd){
-		.opponent_dashboard, .table_avatar, .player_info, .opponent_cards, .hand_ranking, .covered_cards{
+		.opponent_dashboard, .table_avatar, .opponent_cards, .hand_ranking, .covered_cards{
 			text-align:left;
 			float:left;
 		}
@@ -105,6 +108,9 @@
 		}
 		.hand_ranking{
 			left:25%;
+		}
+		.player_info{
+			left:10%;
 		}
 	}
 	&:after{
@@ -198,6 +204,7 @@
 			/*background-color:purple;*/
 			float:left;
 			margin-left:2%;
+			display:none;
 			.sort_button{
 				width:90%;
 				margin:1%;
@@ -217,18 +224,20 @@
 				cursor: text;
 				font-size: 1vw;
 				line-height:1.3vw;
+				background-color:white;
 			}
 			#input{
 				width:100%;
 				/*background-color:orange;*/
 				
 				#message_input{
-					width:80%;
-					margin:0% 1%;
+					width:82%;
+					margin:0%;
 				}
 				#send_button{
 					width:12%;
-					margin:0% 1%;
+					margin:0%;
+					padding:0px;
 				}
 			}
 		}

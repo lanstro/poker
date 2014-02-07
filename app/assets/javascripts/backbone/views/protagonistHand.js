@@ -35,6 +35,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 			this.stopListening();
 			delete this.collection;
 			this.collection = null;
+			this.$el.empty();
 			this.listenTo(app.playerInfoCollection, "change:protagonist", this.toggleProtagonist);
 		}
 	},
@@ -113,7 +114,7 @@ app.ProtagonistHandView = Backbone.View.extend({
 				this.render();
 				break;
 		}
-		if (newStatus === SHOWDOWN_NOTIFICATION)
+		if (newStatus === SHOWDOWN_NOTIFICATION && !app.playerInfoCollection.getProtagonistModel().get('folded'))
 			this.postHand();
 		if (newStatus === OVERALL_GAINS_LOSSES)
 			this.collection.reset();

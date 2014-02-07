@@ -102,6 +102,12 @@ class TablesController < ApplicationController
 		end
 	end
 	
+	def server_time
+		respond_to do |format|
+			format.json { render :json => Time.new.to_f }
+		end
+	end
+	
 	private
 	
 		def signed_in_user

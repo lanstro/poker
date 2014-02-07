@@ -6,11 +6,12 @@ app.Opponents = Backbone.Collection.extend({
 		this.url=$('#table').data('table_id')+'/players_info';
 		_.bindAll(this, "retryFetch");
 		this.retries = 0;
+		this.alreadyRetryFetching=false;
 	},
+	
 	getProtagonistModel: function(){
 		return this.where({"protagonist" : true })[0];
 	},
-	
 	
 	hasRankings: function(){
 		var result = true;
@@ -20,7 +21,6 @@ app.Opponents = Backbone.Collection.extend({
 		});
 		return result;
 	},
-	
 	
 	protagonistHasHand: function(){
 		var model = this.getProtagonistModel();
@@ -42,24 +42,35 @@ app.Opponents = Backbone.Collection.extend({
 	},
 	
 	retryFetch: function(type){
+	
+		if(this.alreadyRetryFetching)
+			return;
+	
 		if( (type == "rankings") || (type == "protagonist_cards" && this.getProtagonistModel() ) ){
+			
+			// these two types of fetches are important - lock down status and show loading icon while they happening
 			app.pubSub.trigger("allowedToAdvanceStatus", false);
 			$("#announcements").addClass("loading");
 		}
-		if(typeof this.retries == 'undefined')
-			this.retries = 0;
+
 		var that = this;
+		that.alreadyRetryFetching=true;
+		
 		that.fetch({
 			timeout: 2000 + this.retries*1000,
 			error: function(xhr, textStatus, errorThrown){
+				that.alreadyRetryFetching=false;
 				if(textStatus["statusText"] == "timeout"){
-					that.retryFetch();
 					that.retries += 1;
-					if(this.retries > 4)
+					if(that.retries > 4){
 						bootbox.alert("Your connection to the server is very poor.  We recommend you try again some other time.");
+						return;
+					}
+					that.retryFetch();
 				}
 			},
 			success: function(data){
+				that.alreadyRetryFetching=false;
 				that.retries=0;
 				var tooEarly = false;
 				data.each(function(player){

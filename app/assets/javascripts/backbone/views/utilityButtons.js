@@ -22,7 +22,6 @@ app.UtilityButtonsView = Backbone.View.extend({
 		
 		this.listenTo(app.playerInfoCollection, "change:protagonist", this.checkForProtagonist);
 		
-		this.listenTo(this.model, "change:status", this.statusChanged);
 		this.listenTo(this.model, "change:in_join_queue", this.renderJoin);
 		this.listenTo(this.model, "change:in_join_queue", this.renderLeave);
 		
@@ -49,6 +48,7 @@ app.UtilityButtonsView = Backbone.View.extend({
 		this.listenTo(protagonist, "change:sitting_out", this.renderSitout);
 		this.listenTo(protagonist, "change:folded", this.renderFold);
 		this.listenTo(protagonist, "change:ready_for_showdown", this.renderReady);
+		this.listenTo(this.model, "change:status", this.statusChanged);
 		this.render();
 	},
 	
@@ -119,7 +119,7 @@ app.UtilityButtonsView = Backbone.View.extend({
 		if( status < DISTRIBUTING_CARDS || status >= SHOWDOWN_NOTIFICATION){
 			return this;
 		}
-		if(this.model2.get("folded")){
+		if(this.model2.get("folded") || !this.model2.get("in_current_hand")){
 			return this;
 		}
 		this.$foldButton.html(this.foldButtonTemplate);
@@ -127,7 +127,6 @@ app.UtilityButtonsView = Backbone.View.extend({
 	},
 	
 	renderReady: function(){
-		// should only be available once protagonist actually has hand
 		this.$readyButton.empty();
 		if(!this.model2){
 			return this;
@@ -136,15 +135,18 @@ app.UtilityButtonsView = Backbone.View.extend({
 		if( status < DISTRIBUTING_CARDS || status >= SHOWDOWN_NOTIFICATION){
 			return this;
 		}
-		if(this.model2.get("folded")){
+		if(this.model2.get("folded") || !this.model2.get("in_current_hand")){
 			return this;
 		}
 		this.$readyButton.html(this.readyButtonTemplate);
+		if(this.model2.get("ready_for_showdown")){
+			this.$readyButton.children().val("Cancel ready");
+		}
 		return this;
 	},
 	
 	statusChanged: function(data){
-		if(data.get("status") >= DISTRIBUTING_CARDS && data.get("status") <= SHOWDOWN_NOTIFICATION){
+		if(data.get("status") === DISTRIBUTING_CARDS || data.get("status") === SHOWDOWN_NOTIFICATION){
 			this.renderReady();
 			this.renderFold();
 		}
@@ -163,9 +165,8 @@ app.UtilityButtonsView = Backbone.View.extend({
 			}
 			bootbox.prompt("How much would you like to buy in for?\nMinimum buy-in: $"+data.min_table_balance+"\nAvailable balance: $"+data.balance+"\nBalance on other tables: $"+data.table_balance,
 				function(result){
-					if(!result){
+					if(!result)
 						return;
-					}
 					result = parseInt(result);
 					if(!result){
 						bootbox.alert("Please enter a positive number.");
@@ -188,8 +189,6 @@ app.UtilityButtonsView = Backbone.View.extend({
 							response = $.parseJSON(response.responseText);
 							bootbox.alert(response.response);
 							that.model.set("in_join_queue", response.in_join_queue);
-							if(that.model2)
-								that.model2.set("in_leave_queue", false);
 						}
 					});
 				}
@@ -216,12 +215,11 @@ app.UtilityButtonsView = Backbone.View.extend({
 	
 	fold: function(){
 		var that = this;
-		that.model.set("folded", true);
+		that.model2.set("folded", true);
+		that.model2.set("arrangement", false);
 		$.getJSON( $('#table').data('table_id')+'/fold', function(response){
 			bootbox.alert(response.response);
-			
 			that.model2.set("ready_for_showdown", response.ready_for_showdown);
-			// clear protagonist cards too
 		});
 	},
 	
