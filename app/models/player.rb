@@ -118,7 +118,6 @@ class Player
 				@balance+=@table.min_table_balance
 				WebsocketRails[(@table.id.to_s+"_chat").to_sym].trigger(:client_send_message, 
 					{user: "dealer", broadcast: @name+" has been busted, and buys in for an additional "+@table.min_table_balance.to_s})
-				#message table that AI has been busted
 			end
 		end
 	end

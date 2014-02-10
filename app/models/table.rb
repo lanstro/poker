@@ -11,6 +11,7 @@ class Table
 	DEFAULT_AIS = true
 	POSITIONS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh',
 						 'eighth', 'ninth']
+	DEFAULT_MID_LO = false
 						 
 	#scheduler statuses
 						 
@@ -40,9 +41,9 @@ class Table
 	@@count = 0
 	
 	attr_reader :stakes, :id, :seats, :ais, :players, :results, :min_table_balance, :status, 
-		:unique_id, :leave_queue, :cards, :current_job
+		:unique_id, :leave_queue, :cards, :current_job, :mid_is_lo
 	
-  def initialize(stakes=DEFAULT_STAKES, seats=DEFAULT_SEATS, ais=DEFAULT_AIS)
+  def initialize(stakes=DEFAULT_STAKES, seats=DEFAULT_SEATS, ais=DEFAULT_AIS, mid_is_lo = DEFAULT_MID_LO)
 		
 		@@tables.push(self)
 		@@count+=1
@@ -57,6 +58,8 @@ class Table
 		@leave_queue = []
 		
 		@ais = ais
+		@mid_is_lo = mid_is_lo
+		
 		@decks = 1+ (@seats-1) / 4
 		@cards=[]
 		@min_table_balance = 3 * (seats +1 )* @stakes
@@ -64,6 +67,8 @@ class Table
 		@status = STATUS_RESET
 		@scheduler = Rufus::Scheduler.new(:frequency => '0.02s')
 		@current_job = nil
+		
+		
 		
 		(CARDS_PER_DECK*@decks).times do |val|
 			@cards.push(Card.new(val+1))
@@ -74,10 +79,6 @@ class Table
   end
 	
 	# housekeeping
-	
-  def my_logger
-    @@my_logger ||= Logger.new("#{Rails.root}/log/my1.log")
-  end
 	
 	def new_ai(seat)
 		return Player.new("AI", self, @stakes * 200, seat, false)
@@ -384,7 +385,7 @@ class Table
 	
 		ranks.sort_by! { |a| a.hand.arrangement[which_hand][:unique_value] }
 		
-		if !(which_hand==MID_HAND and MID_IS_LO)
+		if !(which_hand==MID_HAND and @mid_is_lo)
 			ranks.reverse!
 		end
 		
@@ -614,9 +615,9 @@ class Table
 		return @@tables.find { |table| table.unique_id == id.to_i }
 	end
 	
-	def Table.find_empty_table(stakes=DEFAULT_STAKES, seats=DEFAULT_SEATS, ais=DEFAULT_AIS)
+	def Table.find_empty_table(stakes=DEFAULT_STAKES, seats=DEFAULT_SEATS, ais=DEFAULT_AIS, mid_is_lo = DEFAULT_MID_LO)
 		@@tables.each do |table|
-			if table.stakes == stakes and seats == table.seats and ais == table.ais and !table.full?
+			if table.stakes == stakes and seats == table.seats and ais == table.ais and table.mid_is_lo == mid_is_lo and !table.full?
 				return table
 			end
 		end

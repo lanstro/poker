@@ -10,6 +10,9 @@
 		<%= f.label :seats, "Seats at table" %>
 		<%= f.select(:seats, [4, 2, 6, 8]) %>
 
+		<%= f.label :mid_is_lo, "Middle hand is lo?" %>
+		<%= f.select(:mid_is_lo, ["Yes", "No"]) %>
+		
 		<%= f.label :ais, "AIs fill empty seats?" %>
 		<%= f.select(:ais, ["Yes", "No"]) %>
 

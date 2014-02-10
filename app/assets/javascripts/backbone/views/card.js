@@ -50,6 +50,7 @@ app.CardView = Backbone.View.extend({
 	},
 	
 	droppedOn: function(arg){
+		console.log(JSON.stringify(arg));
 		var data = arg.originalEvent.dataTransfer.getData('text/html');
 		console.log(this.model);
 		console.log(data);
@@ -84,8 +85,25 @@ app.CardView = Backbone.View.extend({
 		this.$el.children(":first").toggleClass("highlighted");
 	},
 	
-	toggleHighlight: function(obj){
+	eventTracker: function(arg2){
+		if(arg2){
+			var cache=[];
+			console.log("arg was "+JSON.stringify(arg2, function(key, value) {
+				if (typeof value === 'object' && value !== null) {
+					if (cache.indexOf(value) !== -1) {
+					// Circular reference found, discard key
+						return;
+					}
+				// Store value in our collection
+					cache.push(value);
+				}
+				return value;
+			}));
+		}
+	},
 	
+	toggleHighlight: function(obj){
+		console.log("card clicked with arg "+this.eventTracker(obj));
 		if(app.statusModel.get("status") < DEALING || app.statusModel.get("status") > ALMOST_SHOWDOWN)
 			return;
 	

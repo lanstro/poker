@@ -3,16 +3,10 @@ class TablesController < ApplicationController
 	before_action :signed_in_user, only: [:destroy, :join, :create, :ready, :message, :fold, :protagonist_cards, :post_protagonist_cards]
 	respond_to :json
 
-  def new
-  end
-	
 	def create
-		if params[:table][:ais] == "Yes"
-			ais=true
-		else
-			ais=false
-		end 
-		@table=Table.find_empty_table(params[:table][:stakes].to_i, params[:table][:seats].to_i, ais)
+		ais = params[:table][:ais] == "Yes" 
+		mid_is_lo = params[:table][:mid_is_lo] == "Yes"
+		@table=Table.find_empty_table(params[:table][:stakes].to_i, params[:table][:seats].to_i, ais, mid_is_lo)
 		redirect_to table_path(@table.id)
 	end
 

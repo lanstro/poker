@@ -24,6 +24,8 @@ app.DealerView = Backbone.View.extend({
 		this.syncDriver(this.model);
 		this.driverID=null;
 		
+		this.midIsLo = $('#table').data('mid_is_lo');
+		
 		this.renderMsg();
 
 	},
@@ -119,7 +121,10 @@ app.DealerView = Backbone.View.extend({
 				message = this.sugarAnnounce(FRONT_HAND);
 				break;
 			case SHOWING_DOWN_MID_NOTIFICATION:
-				message = "Next, show the middle five cards. Lowest hand wins.";
+				if(this.midIsLo)
+					message = "Next, show the middle five cards. Lowest hand wins.";
+				else
+					message = "Next, show the middle five cards."
 				break;
 			case MID_HAND_WINNER_ANNOUNCE:
 				message = this.allHandsAnnounce(MID_HAND);

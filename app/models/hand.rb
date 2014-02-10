@@ -1,6 +1,7 @@
 class Hand
 
-	SUGARS = [THREE_OF_A_KIND, 6, FOUR_OF_A_KIND]
+	SUGARS_LO = [THREE_OF_A_KIND, 6, FOUR_OF_A_KIND]
+	SUGARS_HIGH = [THREE_OF_A_KIND, FULL_HOUSE, FOUR_OF_A_KIND]
 
 	attr_reader :owner, :arrangement, :table
 	attr_accessor :posted
@@ -45,14 +46,29 @@ class Hand
 		return result
 	end
 	
+	def subhand_values_invalid?
+			if @owner.table.mid_is_lo && hand_bigger_than_other?(FRONT_HAND, BACK_HAND)
+				return true
+			elsif !@owner.table.mid_is_lo && 
+				(hand_bigger_than_other?(FRONT_HAND, MID_HAND) or hand_bigger_than_other?(MID_HAND, BACK_HAND))
+				puts "about to invalidate "
+				@arrangement.each do |row|
+					puts "----------"
+					row[:cards].each do | card|
+						puts card.human_description
+					end
+				end
+				return true
+			else
+				return false
+			end
+	end
+	
 	def is_invalid?
 		if !@owner or @owner.is_AI?
 			auto_arrange
 			evaluate_all_subhands
-			if front_bigger_than_back?
-				return true
-			end
-			return false
+			return subhand_values_invalid?
 		end
 	
 		if @owner.folded or cards.size == 0
@@ -73,26 +89,35 @@ class Hand
 		end
 		evaluate_all_subhands
 		
-		if front_bigger_than_back?
-			return true
-		end
-		
-		return false
+		return subhand_values_invalid?
 	end
 
 	def auto_arrange
 		temp = cards.sort_by! { |card| card.value_comparison }
 		reset_arrangement
 		count = 0
-		temp.each do |card|
-			if count < 5
-				@arrangement[MID_HAND][:cards].push card
-			elsif count < 8
-				@arrangement[FRONT_HAND][:cards].push card
-			else
-				@arrangement[BACK_HAND][:cards].push card
+		if @owner.table.mid_is_lo
+			temp.each do |card|
+				if count < 5
+					@arrangement[MID_HAND][:cards].push card
+				elsif count < 8
+					@arrangement[FRONT_HAND][:cards].push card
+				else
+					@arrangement[BACK_HAND][:cards].push card
+				end
+				count+=1
 			end
-			count+=1
+		else
+			temp.each do |card|
+				if count < 3
+					@arrangement[FRONT_HAND][:cards].push card
+				elsif count < 8
+					@arrangement[MID_HAND][:cards].push card
+				else
+					@arrangement[BACK_HAND][:cards].push card
+				end
+				count+=1
+			end
 		end
 	end
 
@@ -116,11 +141,10 @@ class Hand
 	end
 
 	def lo_hand?(index)
-		if index==MID_HAND and MID_IS_LO
+		if index==MID_HAND and @owner.table.mid_is_lo
 			return true
-		else
-			return false
 		end
+		return false
 	end
 	
 	def unique_value(value, cards, lo_hand = false)
@@ -132,9 +156,14 @@ class Hand
 		return result.to_i(16)
 	end
 	
-	def front_bigger_than_back?
-		return unique_value(@arrangement[FRONT_HAND][:value], @arrangement[FRONT_HAND][:cards]) >
-					 unique_value(@arrangement[BACK_HAND][:value],  @arrangement[BACK_HAND][:cards][0..2])
+	def hand_bigger_than_other?(hand1, hand2)
+		if hand1 == FRONT_HAND
+		  return unique_value(@arrangement[hand1][:value], @arrangement[hand1][:cards]) >
+						 unique_value(@arrangement[hand2][:value], @arrangement[hand2][:cards][0..2])
+		else
+			return unique_value(@arrangement[hand1][:value], @arrangement[hand1][:cards]) >
+						 unique_value(@arrangement[hand2][:value], @arrangement[hand2][:cards])
+		end
 	end
 	
 	def evaluate_subhand(index)
@@ -301,13 +330,12 @@ class Hand
 	def eligible_for_sugar?(index)
 		if lo_hand?(index)
 			if @arrangement[index][:value] == HIGH_CARD and
-				 @arrangement[index][:cards].first.value_comparison <= SUGARS[index]
+				 @arrangement[index][:cards].first.value_comparison <= SUGARS_LO[index]
 				 return true
-			else
-				return false
 			end
+			return false
 		end
-		if @arrangement[index][:value] >= SUGARS[index]
+		if @arrangement[index][:value] >= SUGARS_HIGH[index]
 			return true
 		end
 		return false
