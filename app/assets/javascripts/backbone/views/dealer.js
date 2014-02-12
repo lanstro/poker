@@ -21,8 +21,9 @@ app.DealerView = Backbone.View.extend({
 		
 		this.setupDispatcher();
 
-		this.syncDriver(this.model);
+		
 		this.driverID=null;
+		this.syncDriver(this.model);
 		
 		this.midIsLo = $('#table').data('mid_is_lo');
 		
@@ -51,7 +52,7 @@ app.DealerView = Backbone.View.extend({
 	statusChanged: function(data){
 		
 		var newStatus = data.get("status");
-		console.log("newStatus of "+newStatus+" hit at "+(new Date().getTime()/1000));
+		console.log("newStatus of "+newStatus+" hit at "+(Date.now()/1000));
 		
 		var msg = this.correctMessage();
 		
@@ -91,13 +92,19 @@ app.DealerView = Backbone.View.extend({
 				message = "Retrieving new hands from server...";
 				break;
 			case WAITING_FOR_CARD_SORTING:
-				message = "Waiting for players to sort hands.  Showdown in "+this.timeUntilShowdown()+"s";
+				if(this.model.serverTimeOffset === 0)
+					message = "Waiting for players to sort hands.  Showdown in approximately "+this.timeUntilShowdown()+"s";
+				else
+					message = "Waiting for players to sort hands.  Showdown in "+this.timeUntilShowdown()+"s";
 				break;
 			case ALMOST_SHOWDOWN:
-				message = "Showdown in "+this.timeUntilShowdown()+"...";
+				if(this.model.serverTimeOffset === 0)
+					message = "Showdown in approximately "+this.timeUntilShowdown()+"...";
+				else
+					message = "Showdown in "+this.timeUntilShowdown()+"...";
 				break;
 			case SHOWDOWN_NOTIFICATION:
-				if(this.model.get("next_showdown_time") - new Date().getTime() / 1000 > 5)
+				if(this.model.get("next_showdown_time") - Date.now() / 1000 > 5)
 					message = "Everyone's ready to showdown - sending hand arrangements to server..."
 				else
 					message = "Time's up! Sending hand arrangements to server...";
@@ -253,7 +260,7 @@ app.DealerView = Backbone.View.extend({
 		var nextStatus = this.model.get("timings")["next_status"];
 		var result = this.model.get("timings")["next_status_time"] + 
 								 this.model.serverTimeOffset -  
-								 ( new Date().getTime() / 1000 );
+								 Date.now() / 1000;
 		if(nextStatus === ALMOST_SHOWDOWN)
 			result+= NOTIFICATIONS_DELAY[ALMOST_SHOWDOWN];
 		else if(nextStatus == WAITING_FOR_CARD_SORTING)
@@ -265,7 +272,7 @@ app.DealerView = Backbone.View.extend({
 	},
 
 	driver: function(newStatus){
-		console.log("driver wants to change to "+newStatus+" at "+(new Date().getTime()/1000));
+		console.log("driver wants to change to "+newStatus+" at "+(Date.now()/1000));
 		
 		// clear out previous timeout calls
 		window.clearTimeout(this.driverID);
@@ -293,8 +300,11 @@ app.DealerView = Backbone.View.extend({
 	syncDriver: function(data){
 		console.log("syncDriver got "+JSON.stringify(data));
 		clearTimeout(this.driverID);
+		var timeNow = Date.now()/1000;
+		var nextTime = (data.get("timings")["next_status_time"] - timeNow + this.model.serverTimeOffset)*1000;
+		
 		this.driverID=setTimeout(this.driver, 
-														(data.get("timings")["next_status_time"] - new Date().getTime()/1000)*1000 + this.model.serverTimeOffset, 
+														 nextTime, 
 														 data.get("timings")["next_status"]);
 	},
 	

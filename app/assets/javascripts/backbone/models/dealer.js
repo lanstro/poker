@@ -64,13 +64,14 @@ app.Dealer = Backbone.Model.extend ({
 			});
 			this.serverTimeOffset = minOffset;
 			this.offsets=[];
+			this.trigger("change:timings", this);
 			return;
 		}
 		else{
 			var that = this;
-			var start = new Date().getTime() / 1000;
+			var start = Date.now() / 1000;
 			$.getJSON('server_time', function(serverTime){
-				var end = new Date().getTime() / 1000;
+				var end = Date.now() / 1000;
 				that.offsets.push((start + end)/2 - serverTime);
 				setTimeout(that.testTime, 1000);
 			});
