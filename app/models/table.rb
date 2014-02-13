@@ -198,7 +198,6 @@ class Table
 	#scheduler
 	
 	def driver
-		puts "driver called at status "+@status.to_s+" at time "+Time.new.to_f.to_s
 		# skip the delay if there are no relevant sugars, or invalid hands / folding hands
 		if (skip_status?)
 			@status += 1
