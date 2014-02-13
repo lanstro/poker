@@ -326,7 +326,13 @@ class Table
 	
 	def timings
 		next_status = @status+1
-		next_status_time = @current_job.time.to_f
+		next_status_time = @current_job.time
+		if !next_status_time  # no idea why sometimes no current_job - in those cases, just give curren time to force client to 
+													# keep going
+			next_status_time = Time.new.to_f
+		else
+			next_status_time = next_status_time.to_f
+		end
 		if next_status == DISTRIBUTING_CARDS or next_status == SEND_PLAYER_INFO
 			# lie about the status time for these 2 major client pulls to give the server a bit of leeway
 			next_status_time += 2

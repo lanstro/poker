@@ -7,7 +7,7 @@ app.Dealer = Backbone.Model.extend ({
 		this.retries = 0;
 		this.serverTimeOffset = 0;
 		this.offsets=[];
-		setTimeout(this.testTime, 3000);
+		this.testTime();
 		this.alreadyCarefulFetching=false;
 	},
 	
@@ -56,7 +56,7 @@ app.Dealer = Backbone.Model.extend ({
 
 	testTime: function() {
 
-		if(this.offsets.length >= 10){
+		if(this.offsets.length >= 4){
 			var minOffset=this.offsets[0];
 			_.each(this.offsets, function(offset){
 				if(Math.abs(offset) < Math.abs(minOffset))

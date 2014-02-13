@@ -12,17 +12,23 @@ app.CardView = Backbone.View.extend({
 		};
 		_.bindAll(this, 'dragStarted', 'droppedOn');
 		this.template=_.template($('#card_template').html());
-		this.listenTo(this.model, "change:highlighted", this.filterHighlighted);
+		this.listenTo(this.model, "change:val", this.render);
+		this.listenTo(this.model, "change:highlighted", this.checkHighlighted);
 	},
 	
 	events: {
-		'click': 'toggleHighlight',
+		'click': 'clicked',
 		'dragstart': 'dragStarted',
 		'drop': 'droppedOn',
 		'dragenter': 'dragEntered',
 		'dragleave': 'dragLeft',
 		'dragover': 'draggedOver',
 		'dragend': 'dragEnded'
+	},
+	
+	switchModel: function(newAttributes){
+		this.model.set(newAttributes);
+		this.model.set({highlighted: false});
 	},
 	
 	dragStarted: function(arg){
@@ -33,9 +39,7 @@ app.CardView = Backbone.View.extend({
 		if(app.statusModel.get("status") < DEALING || app.statusModel.get("status") > ALMOST_SHOWDOWN)
 			return;
 		this.model.set("highlighted", true);
-		console.log(arg);
-		arg.originalEvent.dataTransfer.setData('text/html', this.model.get("val"));
-		
+		arg.originalEvent.dataTransfer.setData('text/html', this.model.get("val"));		
 	},
 	
 	draggedOver: function(e) {
@@ -50,15 +54,14 @@ app.CardView = Backbone.View.extend({
 	},
 	
 	droppedOn: function(arg){
-		console.log(JSON.stringify(arg));
+		this.eventTracker(arg);
 		var data = arg.originalEvent.dataTransfer.getData('text/html');
-		console.log(this.model);
-		console.log(data);
 		arg.stopPropagation(); // stops the browser from redirecting.
 		arg.preventDefault();
-		app.pubSub.trigger("dragDropFinished", data, this.model);
-		if(data["val"] == this.model.get("val"))
+		data=parseInt(data)
+		if(data == this.model.get("val"))
 			return;
+		app.pubSub.trigger("dragDropFinished", data, this);
 	},
 	
 	dragEntered: function(arg){
@@ -75,14 +78,14 @@ app.CardView = Backbone.View.extend({
 	},
 	
 	isBlank: function(){
-		if(this.model.get("human_description") === "blank"){
-			return true;
-		}
-		return false;
+		return this.model.get("human_description") === "blank";
 	},
 	
-	filterHighlighted: function(arg){
-		this.$el.children(":first").toggleClass("highlighted");
+	checkHighlighted: function(){
+		if(this.model.get("highlighted"))
+			this.$el.children(":first").addClass("highlighted");
+		else
+		  this.$el.children(":first").removeClass("highlighted");
 	},
 	
 	eventTracker: function(arg2){
@@ -102,19 +105,16 @@ app.CardView = Backbone.View.extend({
 		}
 	},
 	
-	toggleHighlight: function(obj){
-		console.log("card clicked with arg "+this.eventTracker(obj));
+	clicked: function(obj){
 		if(app.statusModel.get("status") < DEALING || app.statusModel.get("status") > ALMOST_SHOWDOWN)
 			return;
 	
 		if(this.isBlank()){
-			if( $(".highlighted").length > 0 ){
-				app.pubSub.trigger("blankClicked", this.model.get("row"), this.model.get("position"));
-			}
+			if( $(".highlighted").length > 0 )
+				app.pubSub.trigger("blankClicked", this);
 		}
-		else{
+		else
 			this.toggleHighlighted();
-		}
 	},
 	
 	toggleHighlighted: function(){
@@ -122,9 +122,9 @@ app.CardView = Backbone.View.extend({
 	},
 
 	render: function(){
+		this.$el.empty();
 		this.$el.html(this.template({human_description: this.model.get("human_description")}));
-		if(this.model.get("highlighted"))
-			this.$el.children(":first").addClass("highlighted");
+		this.checkHighlighted();
 		return this;
 	}
 	
