@@ -37,6 +37,16 @@ class Hand
 		Rails.logger.debug "Error: I've been dealt too many cards for Chinese Poker"
 	end
 	
+	def debug_arrangement
+		puts "debugging arrangement..."
+		@arrangement.each do |subhand|
+			puts "------------"
+			subhand[:cards].each do |card|
+				puts card.inspect
+			end
+		end
+	end
+	
 	def cards
 		result = []
 		@arrangement.each do |row|
@@ -71,15 +81,14 @@ class Hand
 			basic_auto_arrange
 			# player disconnected - make them sit out, and auto arrange this hand for now
 		else
-			if @arrangement[FRONT_HAND][:cards].size != 3 or
-				 @arrangement[MID_HAND][:cards].size != 5 or
-				 @arrangement[BACK_HAND][:cards].size != 5 or
-				 cards.size != 13
+			if @arrangement[FRONT_HAND][:cards].size != SUBHAND_SIZES[FRONT_HAND] or
+				 @arrangement[MID_HAND][:cards].size != SUBHAND_SIZES[MID_HAND] or
+				 @arrangement[BACK_HAND][:cards].size != SUBHAND_SIZES[BACK_HAND]
 				return true
 			end
 		end
 		evaluate_all_subhands
-		
+		puts "finished checking hand invalid for "+@owner.name
 		return subhand_values_invalid?
 	end
 
@@ -189,8 +198,6 @@ class Hand
 			is_suited =false
 		end
 		
-		puts "is_suited is "+is_suited.to_s
-			
 		# name straights and straight flushes.  
 		
 		multiples = contains_multiples(cards)
@@ -237,7 +244,6 @@ class Hand
 		if !lo_hand
 			human_name = ["high card", "pair", "two pair", "three of a kind", "straight", "flush", "full house", 
 				"four of a kind", "five of a kind", "straight flush"][hand_name];
-			puts "human name is "+human_name+" because hand_name is "+hand_name.to_s
 		else 
 			if hand_name == HIGH_CARD
 				human_name = "lo -"
@@ -287,7 +293,6 @@ class Hand
 
 	
 	def test_deal(values = nil)
-		start_time = Time.now
 		if !values
 			values=[]
 			13.times { values.push(rand(52)+1) }
@@ -297,10 +302,8 @@ class Hand
 			dealt_card(Card.new(card))
 		end
 		auto_arrange_lo
-		puts "took "+(Time.now - start_time).to_f.to_s
 		return;
 	end
-	
 	
 	def auto_arrange
 		if @owner && @owner.table.mid_is_lo
@@ -433,14 +436,7 @@ class Hand
 		end
 		return result
 	end
-	
-	def find_lowest_remainders(hand = cards)
-		remainders = contains_multiples(hand)[:remainders]
-		remainders.sort!{ |a, b| a.value_comparison(true) <=> b.value_comparison(true)}
-		# may need to stick each into own subarray to be consistent with other card structures
-		return remainders[0..4]
-	end
-	
+
 	def find_highest_valid_front_hand(hand = cards)
 		multiples = contains_multiples(hand)[:multiples]
 		if multiples.size > 0
@@ -488,7 +484,52 @@ class Hand
 				end
 			end
 		end
-		return { front_cards: nil }
+		# no pairs remaining - make the biggest back hand possible
+		flushes = contains_flush(hand)
+		if flushes[:is_flush]
+			flushes = flushes[:cards].max_by do |flush|
+				flush.max_by do |card|
+					card.value_comparison
+				end.value_comparison
+			end
+			if flushes.size > 5
+				flushes.sort_by!{|card| card.value_comparison }
+				flushes = flushes[-5..-1]
+			end
+			return { front_cards: hand - flushes, back_cards: flushes }
+		end
+		straights = contains_straight(hand)
+		if straights[:contains_straight]
+			straights = straights[:cards].max_by do |straight|
+				straight.max_by do |card|
+					if card.class == Array
+						card.first.value_comparison
+					else
+						card.value_comparison
+					end
+				end.value_comparison
+			end
+			if straights.size > 5
+				straights.sort_by! do |cards|
+					if cards.class==Array
+						cards.first.value_comparison
+					else
+						cards.value_comparison
+					end
+				end
+				straights = straights[-5..-1]
+			end
+			straights.map do |cards|
+				if cards.class == Array
+					cards.first
+				else
+					cards
+				end
+			end
+			return { front_cards: hand - straights, back_cards: straights }
+		end
+		hand.sort_by! { |card| card.value_comparison }
+		return { front_cards: hand[-4..-2], back_cards: [[hand.last]] }
 	end
 	
 	def auto_arrange_hi
@@ -514,9 +555,6 @@ class Hand
 			choices = []
 			input[:back_cards].each do |choice|
 				choices.push(most_complementary_back( {back_cards: [choice], next_priority: input[:next_priority], full_hand: input[:full_hand]} ))
-			end
-			choices.each do |choice|
-				puts "one choice was "+choice.inspect
 			end
 			best_choice = choices.max_by { |choice| choice[:approx_next_priority_hand_value] + choice[:approx_back_hand_value] }
 			return best_choice
@@ -591,7 +629,6 @@ class Hand
 				end
 			end
 			# now our array is definitely less than size 5.  If any are arrays, get rid of the other options - see reasoning below
-			puts "about to map "+hand.inspect
 			hand.map! do |card|
 				if card.class == Array  # Fortunately, In hi/lo, you can't flush in the middle or
 					card.first      			# the front, so it doesn't actually matter which one of these duplicates you take.
@@ -603,13 +640,11 @@ class Hand
 			approx_back_hand_value = find_highest_hand(hand)[:highest_value]
 			remainders = input[:full_hand] - hand
 			if input[:next_priority] == MID_HAND
-				puts "about to ask find_lowest_hand to process "+remainders.inspect
 				next_priority_cards = find_lowest_hand(remainders, false)
 				approx_next_priority_hand_value = approximate_value(MID_HAND, 
 																									{size: next_priority_cards.size, 
 																									face_value: next_priority_cards.last.class == Array ? next_priority_cards.last.last.value_comparison : next_priority_cards.last.value_comparison })
 			else
-				puts "about to ask find_lowest_hand to process "+remainders.inspect
 				next_priority_cards = contains_multiples(remainders)
 				if next_priority_cards[:multiples].size == 0
 					if next_priority_cards[:remainders].size <= 3
@@ -653,8 +688,6 @@ class Hand
 		# if the next priority is the back, then try to not use any flushes, then get rid of subarrays
 		hand = input[:mid_cards]
 		
-		puts "complementary_low about to map "+hand.inspect
-		
 		if input[:next_priority] == BACK_HAND
 			contains_flush = contains_flush(input[:full_hand])
 			
@@ -689,26 +722,13 @@ class Hand
 
 		remainders = input[:full_hand] - hand
 		if input[:next_priority] == BACK_HAND
-			puts "about to ask most_complementary_back to process "+remainders.inspect
 			back_cards = find_highest_hand(remainders)[:cards]
-			puts "back_cards was "+back_cards.inspect
 			next_priority_cards = most_complementary_back(  { back_cards:    back_cards, 
 																												full_hand:     remainders, 
 																												next_priority: MID_HAND } )[:back_cards]
 		else
 			front_cards = find_highest_valid_front_hand(remainders)
-			if !front_cards[:front_cards] #extraodinary hand - no pairs from 8 remaining cards
-				puts "no pairs from 8 remaining cards"
-				input[:next_priority] = BACK_HAND
-				puts "about to ask most_complementary_back to process "+remainders.inspect
-				back_cards = find_highest_hand(remainders)[:cards]
-				puts "back_cards was "+back_cards.inspect
-				next_priority_cards = most_complementary_back(  { back_cards:    back_cards, 
-																													full_hand:     remainders, 
-																													next_priority: MID_HAND } )[:back_cards]
-			else
-				next_priority_cards = front_cards[:front_cards]
-			end	
+			next_priority_cards = front_cards[:front_cards]
 		end
 		
 		return {mid_cards: hand, 
@@ -719,36 +739,12 @@ class Hand
 	def auto_arrange_lo(hand=cards)
 
 		hand=hand.sort_by(&:value_comparison)
-		hand.each do |card|
-			puts card.inspect
-		end
+
 		highest_hand = find_highest_hand
 		best_front = find_highest_valid_front_hand
 		lowest_hand = find_lowest_hand
 		
-		puts "highest possible hand is value "+highest_hand[:highest_value].to_s
-		highest_hand[:cards].each do |group|
-			puts "--------"
-			group.each do |card|
-				puts card.inspect
-			end
-		end
-		puts "---------------------------------"
-		puts "lowest possible hand is "
-		lowest_hand.each do |card|
-			puts card.inspect
-		end
-		puts "---------------------------------"
-		puts "best front hand is "
-		if best_front[:front_cards]
-			puts best_front[:front_cards].inspect
-			puts "which is legal because you can put this at the back: "
-			puts best_front[:back_cards].inspect
-		end
-		
 		lo_value = {size: lowest_hand.size, face_value: lowest_hand.last.class == Array ? lowest_hand.last.last.value_comparison : lowest_hand.last.value_comparison }
-		
-		puts "lo_value is "+lo_value.inspect
 		
 		priorities = { FRONT_HAND => approximate_value(FRONT_HAND, best_front[:front_cards] ? {multiples: best_front[:front_cards].size, face_value: best_front[:front_cards].first.value_comparison } : {multiples: 0}),
 									 MID_HAND   => approximate_value(MID_HAND, lo_value),
@@ -777,9 +773,6 @@ class Hand
 				end
 			end
 		end
-		puts priorities.inspect
-		puts "highest priority hand is "+highest_priority_hand.to_s
-		puts "second priority hand is "+second_priority_hand.to_s
 		
 		reset_arrangement
 		
@@ -803,7 +796,6 @@ class Hand
 			back_instructions = most_complementary_back(  {back_cards:    highest_hand[:cards], 
 																										 full_hand:     hand,
 																										 next_priority: second_priority_hand })
-			puts "back instructions is "+back_instructions.inspect
 			
 			@arrangement[BACK_HAND][:cards] += back_instructions[:back_cards]
 			hand -= back_instructions[:back_cards]
@@ -834,7 +826,7 @@ class Hand
 			@arrangement[second_priority_hand][:cards] += mid_instructions[:next_priority_cards]
 			hand-=mid_instructions[:next_priority_cards]
 			
-			if second_priority_hand == BACK_HAND
+			if second_priority_hand == BACK_HAND # when refactoring: note when we actually changed priority in most_complementary_mid
 				best_remainders = contains_multiples(hand)[:multiples]
 				if best_remainders.size > 0
 					front_cards = best_remainders.first
@@ -845,11 +837,11 @@ class Hand
 					hand -= front_cards
 				end
 			else
-				best_remainders = find_highest_hand(hand).first
+				best_remainders = find_highest_hand(hand)[:cards].first
 				while best_remainders.size > 5
 					best_remainders.shift
 				end
-				best_remainders.map do |cards|
+				best_remainders.map! do |cards|
 					cards.class == Array ? cards.first : cards
 				end
 				@arrangement[BACK_HAND][:cards] += best_remainders
@@ -858,23 +850,8 @@ class Hand
 			
 		end
 		
-		fill_out_arrangement(hand)
-		
-		puts "arrangement is now: "
-		
-		@arrangement.each do |subhand|
-			puts "---------"
-			subhand[:cards].each do |card|
-				puts card.inspect
-			end
-		end
-		
-		puts "remaining cards is now "
-		
-		hand.each do |card|
-			puts card.inspect
-		end
-		
+		place_remainders hand
+		debug_arrangement
 	end
 	
 	def approximate_value(which_hand, highest_value)
@@ -931,12 +908,55 @@ class Hand
 		end
 		return result
 	end
-	
-	def fill_out_arrangement(remainders)
-	
-	
+
+	def place_remainders(remainders)
+
+		if remainders.size==0
+			return
+		end
+		
+		gaps = [0, 0, 0]
+		count = 0
+		
+		@arrangement.each do |subhand|
+			gaps[count]=SUBHAND_SIZES[count] - subhand[:cards].size
+			count+=1
+		end
+		
+		if remainders.size != gaps.inject(:+)
+			debug_arrangement
+			raise "weird error: the gaps in the arrangement and the size of remainders are different.  "+gaps.inspect
+		end
+		
+		if gaps.count(0) == 2
+			@arrangement[gaps.find_index { |v| v != 0 }][:cards] += remainders
+			return
+		else
+			if gaps[MID_HAND] > 0
+				remainders.sort_by!{ |a| a.value_comparison(true) }
+				remainders.each do |card|
+					if @arrangement[MID_HAND][:cards].size >= SUBHAND_SIZES[MID_HAND]
+						break
+					elsif !@arrangement[MID_HAND][:cards].find { |c| c.value_comparison(true) == card.value_comparison(true) }
+						@arrangement[MID_HAND][:cards].push card
+					end
+				end
+				while @arrangement[MID_HAND][:cards].size < SUBHAND_SIZES[MID_HAND]
+					@arrangement[MID_HAND][:cards].push(remainders.shift)
+				end
+			end
+			remainders.sort_by!{ |a| -(a.value_comparison) }
+			if gaps[FRONT_HAND] > 0
+				while @arrangement[FRONT_HAND][:cards].size < SUBHAND_SIZES[FRONT_HAND]
+					@arrangement[FRONT_HAND][:cards].push(remainders.shift)
+				end
+			end
+			if gaps[BACK_HAND] > 0
+				@arrangement[BACK_HAND][:cards] += remainders
+			end
+		end
 	end
-	
+
 	def contains_straight(cards=cards)
 		
 		# returns all_straights, which is an array of subarrays.  The subarrays each contain a further array of at least size

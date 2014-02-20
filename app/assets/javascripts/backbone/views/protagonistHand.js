@@ -294,14 +294,14 @@ app.ProtagonistHandView = Backbone.View.extend({
 				return val;
 			}
 			else
-				return card["val"]%52;
+				return (card["val"]-1)%52;
 		});
 		
-		var arrangement = [ cards.slice(0, 3), cards.slice(3, 8), cards.slice(8, 13)]
+		var arrangement = [ cards.slice(0, 3).reverse(), cards.slice(3, 8).reverse(), cards.slice(8, 13).reverse()]
 		var i=0, j=0;
 
 		for(i = 0; i<3; i++){
-			for(j = 4; j >= 0; j--){
+			for(j = CARDS_PER_ROW-1; j >= 0; j--){
 				var subView = this.subViews[i][j];
 				if(arrangement[i][j])
 					subView.switchModel(arrangement[i][j]);

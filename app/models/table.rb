@@ -626,7 +626,7 @@ class Table
 				return table
 			end
 		end
-		return Table.new(stakes, seats, ais)
+		return Table.new(stakes, seats, ais, mid_is_lo)
 	end
 	
 	# other

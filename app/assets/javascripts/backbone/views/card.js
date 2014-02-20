@@ -12,7 +12,7 @@ app.CardView = Backbone.View.extend({
 		};
 		_.bindAll(this, 'dragStarted', 'droppedOn');
 		this.template=_.template($('#card_template').html());
-		this.listenTo(this.model, "change:val", this.render);
+		//this.listenTo(this.model, "change:val", this.render);
 		this.listenTo(this.model, "change:highlighted", this.checkHighlighted);
 	},
 	
@@ -29,6 +29,7 @@ app.CardView = Backbone.View.extend({
 	switchModel: function(newAttributes){
 		this.model.set(newAttributes);
 		this.model.set({highlighted: false});
+		this.render();
 	},
 	
 	dragStarted: function(arg){
