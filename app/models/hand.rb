@@ -18,9 +18,9 @@ class Hand
 	end
 	
 	def reset_arrangement
-		@arrangement = [ {cards: [], value: nil, human_name: nil },
-										 {cards: [], value: nil, human_name: nil  },
-										 {cards: [], value: nil, human_name: nil  } ]
+		@arrangement = [ {cards: [], value: nil, human_name: nil, unique_value: nil },
+										 {cards: [], value: nil, human_name: nil, unique_value: nil  },
+										 {cards: [], value: nil, human_name: nil, unique_value: nil  } ]
 	end
 	
 	def muck
@@ -56,13 +56,16 @@ class Hand
 	end
 	
 	def subhand_values_invalid?
-			if @owner.table.mid_is_lo && hand_bigger_than_other?(FRONT_HAND, BACK_HAND)
-				return true
-			elsif !@owner.table.mid_is_lo && 
-				(hand_bigger_than_other?(FRONT_HAND, MID_HAND) or hand_bigger_than_other?(MID_HAND, BACK_HAND))
-				return true
-			end
-			return false
+		if !@owner
+			return hand_bigger_than_other?(FRONT_HAND, BACK_HAND)
+		end
+		if @owner.table.mid_is_lo && hand_bigger_than_other?(FRONT_HAND, BACK_HAND)
+			return true
+		elsif !@owner.table.mid_is_lo && 
+			(hand_bigger_than_other?(FRONT_HAND, MID_HAND) or hand_bigger_than_other?(MID_HAND, BACK_HAND))
+			return true
+		end
+		return false
 	end
 	
 	def is_invalid?
@@ -88,7 +91,6 @@ class Hand
 			end
 		end
 		evaluate_all_subhands
-		puts "finished checking hand invalid for "+@owner.name
 		return subhand_values_invalid?
 	end
 
@@ -137,16 +139,20 @@ class Hand
 	end
 	
 	def evaluate_all_subhands
-		3.times { |i|	evaluate_subhand(i) }
+		3.times { |i|	@arrangement[i]=evaluate_subhand(i) }
 	end
 
 	def lo_hand?(index)
-		return @owner ? index==MID_HAND and @owner.table.mid_is_lo : index == MID_HAND
+		return @owner ? (index==MID_HAND and @owner.table.mid_is_lo) : index == MID_HAND
 	end
 	
-	def unique_value(value, cards, lo_hand = false, limited = false)
+	def unique_value(cards, value=nil, lo_hand = false, limited = false)
+
 		if limited and limited < cards.size
 			cards = cards[0..limited]
+		end
+		if !value
+			value = find_highest_hand(cards)[:highest_value]
 		end
 		result = value.to_s(16)
 		cards.each do |card|
@@ -157,189 +163,80 @@ class Hand
 	
 	def hand_bigger_than_other?(hand1, hand2)
 		if hand1 == FRONT_HAND
-		  return unique_value(@arrangement[hand1][:value], @arrangement[hand1][:cards]) >
-						 unique_value(@arrangement[hand2][:value], @arrangement[hand2][:cards][0..2])
+		  return unique_value(@arrangement[hand1][:cards], @arrangement[hand1][:value]) >
+						 unique_value(@arrangement[hand2][:cards], @arrangement[hand2][:value], false, 3)
 		else
-			return unique_value(@arrangement[hand1][:value], @arrangement[hand1][:cards]) >
-						 unique_value(@arrangement[hand2][:value], @arrangement[hand2][:cards])
+			return unique_value(@arrangement[hand1][:cards], @arrangement[hand1][:value]) >
+						 unique_value(@arrangement[hand2][:cards], @arrangement[hand2][:value])
 		end
 	end
 	
-	def eligible_for_sugar?(index)
+	def eligible_for_sugar?(index, value=nil, hand=nil)
+		if !hand
+			hand  = @arrangement[index][:cards]
+		end
+		if !hand
+			return nil
+		end
+		if !value			
+			value = @arrangement[index][:value]
+			if !value
+				value = find_highest_hand(hand)[:highest_value]
+			end
+		end
 		if lo_hand?(index)
-			if @arrangement[index][:value] == HIGH_CARD and
-				 @arrangement[index][:cards].first.value_comparison <= SUGARS_LO[index]
+			if value == HIGH_CARD and hand.first.value_comparison <= SUGARS_LO[index]
 				 return true
 			end
 			return false
 		end
-		if @arrangement[index][:value] >= SUGARS_HIGH[index]
+		if value >= SUGARS_HIGH[index]
 			return true
 		end
 		return false
 	end
 	
+	def find_highest_hand(hand = cards, front_hand = false)
 
-	def evaluate_subhand(index)
-		
-		# this function assumes that the subhand is size [3, 5, 5]
-		
-		cards = @arrangement[index][:cards]
-		
-		values = cards.map(&:value_comparison)
-		
-		values.sort!.reverse! 
-		lo_hand=lo_hand?(index)
-	
-		# if it's not a lo hand and it's not the front, work out whether the hand is a straight and/or a flush
-
-		if !lo_hand and index != FRONT_HAND 
-			is_straight = contains_straight(cards)[:is_straight]
-			is_suited = contains_flush(cards)[:is_flush]
-		else
-			is_straight = false
-			is_suited =false
-		end
-		
-		# name straights and straight flushes.  
-		
-		multiples = contains_multiples(cards)
-		
-		if is_straight
-			if is_suited
-				hand_name = STRAIGHT_FLUSH
-			else
-				hand_name = STRAIGHT
-			end
-			
-		elsif multiples[:multiples].size == 0
-			hand_name = HIGH_CARD
-		else
-		
-			# name hands with repeated cards
-		
-			case multiples[:multiples].first.size
-				when 5
-					hand_name = FIVE_OF_A_KIND
-				when 4
-					hand_name = FOUR_OF_A_KIND
-				when 3
-					if multiples[:multiples].second
-						hand_name = FULL_HOUSE
-					else
-						hand_name = THREE_OF_A_KIND
-					end
-				when 2
-					if multiples[:multiples].second
-						hand_name = TWO_PAIR
-					else
-						hand_name = PAIR
-					end
-			end
-			
-		end
-					
-		# name flushes - done after the pairs etc as there could be multiple decks, therefore pairs/trips don't preclude flushes
-		if is_suited && (hand_name < FLUSH)
-			hand_name = FLUSH
-		end
-		
-		if !lo_hand
-			human_name = ["high card", "pair", "two pair", "three of a kind", "straight", "flush", "full house", 
-				"four of a kind", "five of a kind", "straight flush"][hand_name];
-		else 
-			if hand_name == HIGH_CARD
-				human_name = "lo -"
-			else
-				human_name = "compromised lo with "+["high card", "pair", "two pair", "three of a kind", "straight", "flush", 
-					"full house", "four of a kind", "five of a kind"][hand_name];
-			end
-		end
-		
-		case hand_name
-			when FIVE_OF_A_KIND
-				@arrangement[index]={cards: cards, value: hand_name, human_name: human_name+" "+cards.first.face_value_long+"s"}
-			when HIGH_CARD, STRAIGHT, FLUSH, STRAIGHT_FLUSH
-				cards = cards.sort_by{ |card| card.value_comparison(lo_hand) }.reverse
-				human_name+=" "
-				cards.each { |card| human_name+=card.face_value_short }
-				@arrangement[index]= {cards: cards, value: hand_name, human_name: human_name }
-			when PAIR, THREE_OF_A_KIND, FOUR_OF_A_KIND, FULL_HOUSE, TWO_PAIR
-				cards = multiples[:multiples].first + (multiples[:multiples].second ? multiples[:multiples].second : []) + 
-								multiples[:remainders].sort_by{ |card| card.value_comparison(lo_hand)}.reverse
-				case hand_name
-					when FULL_HOUSE
-						human_name = human_name + " " + cards.first.face_value_long+"s over "+ cards.last.face_value_long+"s"
-					when FOUR_OF_A_KIND, THREE_OF_A_KIND
-						human_name = human_name + " "+cards.first.face_value_long+"s"
-					when TWO_PAIR
-						human_name = human_name+", "+cards.first.face_value_long+"s and "+cards[2].face_value_long+"s"
-					when PAIR
-						human_name = human_name + " of "+cards.first.face_value_long+"s "
-						if lo_hand
-							human_name += "and "
-							cards[2..-1].each do |card|
-								human_name+=card.face_value_short
-							end
-						else
-							human_name += "with "+cards[2].face_value_long+" kicker"
-						end
-				end
-				@arrangement[index]= {cards: cards, value: hand_name, human_name: human_name}
-		end
-		@arrangement[index][:unique_value] = unique_value(@arrangement[index][:value], @arrangement[index][:cards], lo_hand)
-	end
-	
-	####################################################
-	# AI sorting functions														 #
-	####################################################
-
-	
-	def test_deal(values = nil)
-		if !values
-			values=[]
-			13.times { values.push(rand(52)+1) }
-		end
-		reset_arrangement
-		values.each do |card|
-			dealt_card(Card.new(card))
-		end
-		auto_arrange_lo
-		return;
-	end
-	
-	def auto_arrange
-		if @owner && @owner.table.mid_is_lo
-			auto_arrange_lo
-		else
-			auto_arrange_hi
-		end
-	end
-	
-	def find_highest_hand(hand = cards)
-	
 		# calculates highest_hand, which is an int value that signifies the big picture value of the highest subhand possible - 
 		# ie, straight flush, full house, etc
 		
 		# also calculates highest_hand_cards, which is an array of further subarrays.  Each subarray contains cards that make up
 		# a hand of value highest_hand
 		
+		multiples = contains_multiples hand
+		multiples_max = multiples[:multiples].size == 0 ? 1 : multiples[:multiples].first.size
+		highest_hand_cards = []
+		
+		if front_hand
+			if multiples_max == 1
+				return {highest_value: HIGH_CARD, cards: [hand.sort_by{|card| card.value_comparison}[-3..-1]]}
+			else
+				choices = multiples[:multiples].dup
+				result = []
+				front_value = multiples_max > 2 ? PAIR : THREE_OF_A_KIND
+				while choices.first.size == multiples_max
+					result.push choices.shift
+				end
+				return {highest_value: front_value, cards: result}
+			end
+		end
+		
 		straights = hand.size < MIN_STRAIGHT_SIZE ? {is_straight: false} : contains_straight(hand)
 		flushes = hand.size < MIN_FLUSH_SIZE ? {is_flush: false} : contains_flush(hand)
 		
-		multiples = contains_multiples hand
-		multiples_max = multiples[:multiples].size == 0 ? 0 : multiples[:multiples].first.size
-		
-		hand = hand.sort_by(&:value_comparison)
-		
-		highest_hand_cards = []
+		#hand = hand.sort_by(&:value_comparison)
 		
 		if flushes[:is_flush] and straights[:is_straight]
+			result = []
 			flushes[:cards].each do |flush|
 				straight_test = contains_straight(flush)
 				if straight_test[:is_straight]
-					return {highest_value: STRAIGHT_FLUSH, cards: straight_test[:cards]}
+					result+= straight_test[:cards]
 				end
+			end
+			if result.size > 0
+				return {highest_value: STRAIGHT_FLUSH, cards: result }
 			end
 		end
 		if multiples_max >= 4
@@ -359,10 +256,10 @@ class Hand
 					multiples[:multiples][(counter+1)..-1].each do |subpair|
 						highest_hand_cards.push group.dup
 						highest_hand_cards.last.concat subpair[0..1]  # this may breaks up trip, and breaking them in this way doesn't
-																												 # get every combination of 3 pick 2.  However, if we're putting a 
-																												 # full house at the back, it doesn't matter, because you can't make
-																												 # flushes in the front or middle
-																												 # may need rewrite for hi only as flushes in middle can happen there
+																												  # get every combination of 3 pick 2.  However, if we're putting a 
+																												  # full house at the back, it doesn't matter, because you can't make
+																												  # flushes in the front or middle
+																												  # may need rewrite for hi only as flushes in middle can happen there
 					end
 				end
 				counter+=1
@@ -397,6 +294,7 @@ class Hand
 			highest_hand=HIGH_CARD
 			highest_hand_cards = [[hand.last]]
 		end
+		
 		highest_hand_cards.map! do |subhand|
 			subhand.sort_by! do |cards|
 				if cards.class == Array
@@ -407,6 +305,168 @@ class Hand
 			end
 		end
 		return {highest_value: highest_hand, cards: highest_hand_cards}
+	end
+	
+	def sort_cards_by_importance(hand, which_hand, value=nil)
+
+		lo_hand=lo_hand?(which_hand)
+	
+		if hand.size > 5 || hand.size < 2
+			return {cards: hand, value: HIGH_CARD, weighted_value: 0}
+		end
+		if !value
+			value = find_highest_hand(hand)[:highest_value]
+		end
+		case value
+			when HIGH_CARD, STRAIGHT, FLUSH, STRAIGHT_FLUSH
+				hand.sort_by!{ |card| card.value_comparison(lo_hand) }
+				if !lo_hand
+					hand.reverse!
+				end
+			when PAIR, THREE_OF_A_KIND, FOUR_OF_A_KIND, FULL_HOUSE, TWO_PAIR
+				multiples = contains_multiples(hand)
+				hand=multiples[:multiples].flatten + multiples[:remainders].reverse
+				# only hand not covered is five of a kind - no need to sort that
+		end
+
+		weighted_value=0
+		
+		case which_hand
+			when BACK_HAND
+				weighted_value += value
+				if value >= SUGARS_LO[BACK_HAND]
+					weighted_value+= SUGAR_VALUE
+				end
+			when MID_HAND
+				if value == HIGH_CARD
+					case hand.first.value_comparison
+						when 5 # wheel
+							weighted_value += FIVE_OF_A_KIND 
+							weighted_value += SUGAR_VALUE
+						when 6
+							weighted_value += FOUR_OF_A_KIND
+							weighted_value += SUGAR_VALUE
+						when 7, 8
+							weighted_value += FULL_HOUSE
+						when 9, 10
+							weighted_value += FLUSH
+						when 11, 12, 13
+							weighted_value += THREE_OF_A_KIND
+						else
+							weighted_value += HIGH_CARD
+					end
+				end
+			when FRONT_HAND
+				if value == THREE_OF_A_KIND
+					weighted_value += SUGAR_VALUE
+					if hand.first.value_comparison > 10
+						weighted_value+= FIVE_OF_A_KIND
+					else
+						weighted_value += FOUR_OF_A_KIND
+					end
+				elsif value == PAIR
+					case hand.first.value_comparison
+						when ACE_COMPARATOR, KING_COMPARATOR, QUEEN
+							weighted_value += FULL_HOUSE
+						when JACK, TEN
+							weighted_value += FLUSH
+						when 9, 8
+							weighted_value += STRAIGHT
+						else
+							weighted_value += THREE_OF_A_KIND
+					end
+				end
+		end
+		return {cards: hand, hand_value: value, weighted_value: weighted_value}
+	end
+	
+	def hand_to_string(cards, hand_name, lo_hand)
+		human_name = ["high card", "pair", "two pair", "three of a kind", "straight", "flush", "full house", 
+				"four of a kind", "five of a kind", "straight flush"][hand_name];
+				
+		if lo_hand
+			if hand_name == HIGH_CARD
+				human_name = "lo -"
+			else
+				human_name = "compromised lo with "+human_name
+			end
+		end
+		
+		case hand_name
+			when FIVE_OF_A_KIND
+				human_name += " "+cards.first.face_value_long+"s"
+			when HIGH_CARD, STRAIGHT, FLUSH, STRAIGHT_FLUSH
+				human_name+=" "
+				cards.each { |card| human_name+=card.face_value_short }
+			when PAIR, THREE_OF_A_KIND, FOUR_OF_A_KIND, FULL_HOUSE, TWO_PAIR
+				case hand_name
+					when FULL_HOUSE
+						human_name = human_name + " " + cards.first.face_value_long+"s over "+ cards.last.face_value_long+"s"
+					when FOUR_OF_A_KIND, THREE_OF_A_KIND
+						human_name = human_name + " "+cards.first.face_value_long+"s"
+					when TWO_PAIR
+						human_name = human_name+", "+cards.first.face_value_long+"s and "+cards[2].face_value_long+"s"
+					when PAIR
+						human_name = human_name + " of "+cards.first.face_value_long+"s "
+						if lo_hand
+							human_name += "and "
+							cards[2..-1].each do |card|
+								human_name+=card.face_value_short
+							end
+						else
+							human_name += "with "+cards[2].face_value_long+" kicker"
+						end
+				end
+		end
+		return human_name
+	end
+
+	def evaluate_subhand(index)
+		
+		# this function assumes that the subhand is size [3, 5, 5]
+		lo_hand=lo_hand?(index)
+		
+		sort = sort_cards_by_importance(@arrangement[index][:cards], index, @arrangement[index][:value])
+				
+		hand_value   = sort[:hand_value]
+		cards        = sort[:cards]		
+		human_name   = hand_to_string(cards, hand_value, lo_hand)
+		exact_value  = unique_value(cards, hand_value, lo_hand)
+		
+		return {cards: cards, value: hand_value, human_name: human_name, unique_value: exact_value }
+	end
+	
+	####################################################
+	# AI sorting functions														 #
+	####################################################
+
+	
+	def test_deal(values = nil)
+		if !values
+			values=[]
+			13.times { values.push(rand(52)+1) }
+		end
+		reset_arrangement
+		values.each do |card|
+			dealt_card(Card.new(card))
+		end
+		auto_arrange_lo
+		evaluate_all_subhands
+		@arrangement.each do |subhand|
+		  puts subhand[:human_name]
+		end
+		evaluate_all_subhands
+		if subhand_values_invalid?		
+			raise "AI misallocated"
+		end
+	end
+	
+	def auto_arrange
+		if @owner && @owner.table.mid_is_lo
+			auto_arrange_lo
+		else
+			auto_arrange_hi
+		end
 	end
 	
 	def find_lowest_hand(hand = cards)
@@ -424,6 +484,94 @@ class Hand
 		return result
 	end
 	
+	def sort_hand_with_choices(hand, is_lo = false)
+		return hand.sort_by{|cards| cards.class == Array ? cards.first.value_comparison(is_lo) : cards.value_comparison(is_lo) }
+	end
+	
+	def trim_hand_to_five(args)
+		hand = args[:choices].first 
+		
+		# all los are exactly size 5 and all front hands are size 3 or less
+		# all quads/trips/fullhouses etc are size 5 or less
+		# therefore these are flushes and straights with options - gotta get rid of some
+		is_lo = lo_hand? args[:which_hand]
+		hand = sort_hand_with_choices(hand, is_lo)
+		if !args[:next_priority] or args[:next_priority] == BACK_HAND
+			# just pick the highest 5 cards
+			hand=hand[-5..-1]
+		elsif args[:next_priority] == FRONT_HAND
+			# work out what the best trips / pair is
+			# if no trips / pair, then prioritise the back
+			
+			# otherwise, try to avoid the best multiples
+			# then, make the biggest hand possible for the back
+			
+			multiples = contains_multiples(args[:full_hand])[:multiples]
+			if !multiples.first or multiples.first.size > 5
+				hand=hand[-5..-1]
+			else
+				front_secured = false
+				while !front_secured and multiples.size > 0
+					highest_multiple = multiples.shift
+					if (highest_multiple & hand.flatten).size > 0
+						highest_hand = find_highest_hand(hand.flatten - highest_multiple)
+						if highest_hand[:highest_value] >= STRAIGHT
+							hand = highest_hand[:cards].first
+							front_secured = true
+						end
+					end
+				end
+				if hand.size > 5
+					hand=hand[-5..-1]
+				end
+			end
+		elsif lo_hand? args[:next_priority]
+			# work out what the best possible lo hand is
+			# if there's crossover in hand value, then work out whether we can stay clear and still make both hands
+			#                                          if so then make the biggest hand possible while avoiding
+			# otherwise, make the biggest possible hand while using up as many multiples as possible
+			lowest_hand = find_lowest_hand(args[:full_hand])
+			lowest_hand.each do |cards|
+				if cards.class == Array
+					# multiple choices at that card value to make the lo - as long as one of them isn't in our highest hand, we're free to
+					# take whatever we like in the high hand - ignore this card value
+					if (cards - hand.flatten).size > 0
+						break
+					else
+						# go through each card at that face value - if we can still make a straight or better without it, then get rid of the card
+						# this branch is possible where the high hand has a straight with multiple choices for a lo card value
+						cards.each do |card|
+							highest_hand = find_highest_hand(hand.flatten - card) #consider refactoring along with almost identical fragment below
+							if highest_hand[:highest_value] >= STRAIGHT
+								hand = highest_hand[:cards].first
+								break
+							end
+						end
+					end
+				else
+					# it's a lo single - happy to leave it out if we can, otherwise unfortunately we're keeping it
+					highest_hand = find_highest_hand(hand.flatten - cards)
+					if highest_hand[:highest_value] >= STRAIGHT
+						hand = highest_hand[:cards].first
+						break
+					end
+				end
+				if hand.size <= 5
+					#stop pruning
+					break
+				end
+			end
+			# after that pruning, if the high hand size is still above 5, then just take the highest 5 cards
+			hand=hand[-5..-1]
+		else
+			# it's hi only, and it's the mid
+			# just take the highest cards possible for the back: this makes the mid more likely to be valid, and also maximises chances of
+			# retaining a lower straight in middle
+			hand=hand[-5..-1]
+		end
+		return hand
+	end
+	
 	def pick_best_choice(args)
 	
 		if !args[:choices] or !args[:which_hand]
@@ -434,647 +582,204 @@ class Hand
 		if !args[:full_hand]
 			args[:full_hand] = hand
 		end
-		
-		if !args[:next_priority]
-			args[:next_priority] = BACK_HAND
-		end
-		
 	
 		if args[:choices].size > 1
+			# call recursively for each choice, and then return the best one
 			options = []
 			args[:choices].each do |choice|
-				options.push pick_best_choice([choice], args[:which_hand], args[:full_hand], args[:next_priority])
+				options.push pick_best_choice( {choices: [choice], which_hand: args[:which_hand], full_hand: args[:full_hand], next_priority: args[:next_priority]})
 			end
-			return options.max_by { |choice| choice[:approximate_value] } # check args later
-		else
-			hand = args[:choices].first 
-			if hand.size > 5
-        # flushes and straights with options - gotta get rid of some
-				is_lo = lo_hand? args[:next_priority]
-				hand.sort_by!{|cards| cards.class == Array ? cards.first.value_comparison(is_lo) : cards.value_comparison(is_lo) }
-				if args[:next_priority] == BACK_HAND
-					while hand.size > 5
-						hand.shift
-					end
-				elsif args[:next_priority] == FRONT_HAND
-					# work out what the best trips / pair is
-					# if can avoid it, then avoid it
-					# if not, make the biggest hand possible
-				else args[:next_priority] == MID_HAND
-					# work out what the best possible lo hand is
-					# if there's crossover in hand value, then work out whether we can stay clear and still make both hands
-					#                                          if so then make the biggest hand possible while avoiding
-					# otherwise, make the biggest possible hand while using up as many multiples as possible
-				
+			best_choice = options.max do |choice1, choice2|
+				if choice1[:weighted_value] == choice2[:weighted_value]
+					choice1[:exact_value] <=> choice2[:exact_value]
+				else
+				  choice1[:weighted_value] <=> choice2[:weighted_value]
 				end
-				
-				
-				multiples = contains_multiples(args[:full_hand])[:multiples]
-				if lo_hand? args[:next_priority]
-					# flushes and straights should try to 1. break up multiples and 2. take the highest face values
-					# this whole thing is wrong?
+			end
 
-					while hand.size > 5
-						target = nil
-						target = hand.find do |cards|
-							if cards.class == Array
-								true
-							else
-								multiples.each do |group|
-									if cards.value_comparison == group.first.value_comparison
-										true
-									end
-								end
-							end
-						end
-						if !target #no chance of there being any arrays now
-							target = cards.first.value_comparison == ACE ? cards.second : cards.first
-						end
-						hand.delete target
-					end
+			return best_choice
+		end
+		
+		hand = args[:choices].first 
+		if hand.size > 5
+			hand=trim_hand_to_five( args )
+		end
+
+		# If any are arrays, get rid of the other options
+		# the only arrays should be los and straights which have options for cards of the same face value
+		# should try to preserve flushes if possible
+		
+		flushes = contains_flush(hand.flatten)
+		flushes = flushes[:is_flush] ? flushes[:cards].flatten : false
+		
+		hand.map! do |cards|
+			if cards.class == Array  
+				if !flushes
+					cards.first # just take the first - they're all equivalent anyway
 				else
-					# prioritising the front
-					# flushes and straights should try to 1. preserve a trips/high pair and otherwise, take the highest cards possible
-					
-					# go through the multiples from best hands to worst, and if any are found within the hand array, remove it so that
-					# the multiple is preserved for the front
-					target=nil
-					multiples.each do |group|
-						if target
-							break
-						end
-						hand.each do | cards|
-							value = cards.class == Array ? cards.first.value_comparison : cards.value_comparison
-							if value == group.first.value_comparison
-								target = cards
-								break
-							end
-						end
-					end
-					if target
-						hand.delete target
-					end
-					
-					if hand.size > 5
-						hand.sort_by! do |cards|
-							if cards.class == Array
-								cards.first.value_comparison
-							else
-								cards.value_comparison
-							end
-						end
-						while hand.size > 5
-							hand.shift #get rid of the lowest cards until the hand's size 5
-						end
-					end
-				end
-			end
-			# now our array is definitely less than size 5.  If any are arrays, get rid of the other options - see reasoning below
-			hand.map! do |card|
-				if card.class == Array  # Fortunately, In hi/lo, you can't flush in the middle or
-					card.first      			# the front, so it doesn't actually matter which one of these duplicates you take.
-																# may need to change for hi only
-				else
-					card
-				end
-			end
-			approx_back_hand_value = find_highest_hand(hand)[:highest_value]
-			remainders = args[:full_hand] - hand
-			if args[:next_priority] == MID_HAND
-				next_priority_cards = find_lowest_hand(remainders)
-				next_priority_cards.map! do |cards|
-					if cards.class == Array
-						cards.first
+					remainders = cards - flushes
+					if remainders.size > 0  # one or more of these cards aren't used in the flushes, so return it
+						remainders.first
 					else
-						cards
+						cards.first # unfortunately they're all used in flushes, guess we just use the first one
 					end
 				end
-				approx_next_priority_hand_value = approximate_value(MID_HAND, 
-																									{size: next_priority_cards.size, 
-																									face_value: next_priority_cards.last.class == Array ? next_priority_cards.last.last.value_comparison : next_priority_cards.last.value_comparison })
 			else
-				next_priority_cards = contains_multiples(remainders)
-				if next_priority_cards[:multiples].size == 0
-					if next_priority_cards[:remainders].size <= 3
-						next_priority_cards = next_priority_cards[:remainders]
-					else
-						next_priority_cards = next_priority_cards[:remainders][-3..-1]
-					end
-					multiples = 1
-				else
-					next_priority_cards = next_priority_cards[:multiples].first
-					multiples = next_priority_cards.size
-				end				
-				approx_next_priority_hand_value = approximate_value(FRONT_HAND, 
-																					{multiples: multiples, face_value: next_priority_cards.last.value_comparison })
-			end
-		
-		
-		
-		
-			is_lo = lo_hand? which_hand
-			if choices.size > 5
-				# need to chop some off
-			else
-				# iterate through each choice, if any is an array, need to chop some off
+				cards
 			end
 		end
-	
+		
+		
+		sort           = sort_cards_by_importance(hand, args[:which_hand])
+		hand           = sort[:cards]
+		value          = sort[:hand_value]
+		weighted_value = sort[:weighted_value]
+		exact_value    = unique_value(hand, value, lo_hand?(args[:which_hand]))
+		
+		return { cards:           hand, 
+		         value:           value,
+						 weighted_value:  weighted_value,
+						 exact_value:     exact_value,
+						 remaining_cards: args[:full_hand] - hand, 
+						 next_priority:   args[:next_priority] }
+		
 	end
 
 	def find_highest_valid_front_hand(hand = cards)
 		multiples = contains_multiples(hand)[:multiples]
 		
+		if @arrangement[BACK_HAND][:cards].size > 0
+			back_filled = true
+		end
+		
 		while multiples.size > 0
-			current_multiple = multiples.shift[0..2]
+			current_multiple = multiples.shift 
+			if current_multiple.size > 3 # if there are any flushes, take the non flush cards for the trips
+				flushes = contains_flush hand
+				if !flushes[:is_flush] or back_filled
+					current_multiple=current_multiple[0..2]
+				else
+					flushes = flushes[:cards].flatten
+					non_flush_cards = current_multiple - flushes
+					current_multiple = non_flush_cards.size >= 3 ? non_flush_cards[0..2] : current_multiple[0..2]
+				end
+			end
+				
 			front_value = current_multiple.size > 2 ? THREE_OF_A_KIND : PAIR
 			remainders = hand - current_multiple
-			highest_hand = find_highest_hand remainders
-			
-		
-		if multiples.size > 0
-			
-			if multiples.first.size >= 3
-				while multiples.first and multiples.first.size >= 3
-					trips = multiples.shift
-					while(trips.size > 3)
-						trips.pop
-					end
-					remainders = hand - trips
-					highest_hand = find_highest_hand remainders
-					if highest_hand[:highest_value] > THREE_OF_A_KIND 
-						return {front_cards: trips, back_cards: highest_hand[:cards] }
-					elsif highest_hand[:highest_value] == THREE_OF_A_KIND
-						result = []
-						highest_hand[:cards].each do |group|
-							if group.first.value_comparison > trips.first.value_comparison
-								result.push group
-							end
-						end
-						if result.size > 0
-							return {front_cards: trips, back_cards: result}
-						end
-					end
-				end
-			end
-			if multiples.first and multiples.first.size == 2
-				while multiples.first and multiples.first.size == 2
-					pair = multiples.shift
-					remainders = hand - pair
-					highest_hand = find_highest_hand remainders
-					if highest_hand[:highest_value] > PAIR
-						return {front_cards: pair, back_cards: highest_hand[:cards]}
-					elsif highest_hand[:highest_value] == PAIR
-						result = []
-						highest_hand[:cards].each do |group|
-							if group.first.value_comparison > pair.first.value_comparison
-								result.push group
-							end
-							if result.size > 0
-								return {front_cards: pair, back_cards: result}
-							end
-						end
-					end
-				end
-			end
-		end
-		# no pairs remaining - make the biggest back hand possible
-		flushes = contains_flush(hand)
-		if flushes[:is_flush]
-			flushes = flushes[:cards].max_by do |flush|
-				flush.max_by do |card|
-					card.value_comparison
-				end.value_comparison
-			end
-			if flushes.size > 5
-				flushes.sort_by!{|card| card.value_comparison }
-				flushes = flushes[-5..-1]
-			end
-			return { front_cards: hand - flushes, back_cards: flushes }
-		end
-		straights = contains_straight(hand)
-		if straights[:contains_straight]
-			straights = straights[:cards].max_by do |straight|
-				straight.max_by do |card|
-					if card.class == Array
-						card.first.value_comparison
-					else
-						card.value_comparison
-					end
-				end.value_comparison
-			end
-			if straights.size > 5
-				straights.sort_by! do |cards|
-					if cards.class==Array
-						cards.first.value_comparison
-					else
-						cards.value_comparison
-					end
-				end
-				straights = straights[-5..-1]
-			end
-			straights.map do |cards|
-				if cards.class == Array
-					cards.first
+
+			result = { cards:           current_multiple,
+								 value:           front_value,
+								 weighted_value:  sort_cards_by_importance(current_multiple, FRONT_HAND, front_value)[:weighted_value],
+								 exact_value:     unique_value(current_multiple, front_value),
+								 remaining_cards: remainders}
+
+			if !back_filled
+				highest_hand = find_highest_hand remainders # make it call choose_best first
+				back_value = highest_hand[:highest_value]
+				highest_hand = pick_best_choice( {choices: highest_hand[:cards], which_hand: BACK_HAND, full_hand: hand, next_priority: FRONT_HAND })[:cards]
+				result[:next_priority] = BACK_HAND
+
+				back_unique_value = unique_value(highest_hand, front_value, false, current_multiple.size)
+
+			else
+				result[:next_priority] = MID_HAND
+				if @arrangement[BACK_HAND][:value]
+					back_value = @arrangement[BACK_HAND][:value]
 				else
-					cards
+					back_value = sort_cards_by_importance(@arrangement[BACK_HAND][:cards], BACK_HAND)
 				end
+				back_unique_value = unique_value(@arrangement[BACK_HAND][:cards], back_value, false, current_multiple.size)
 			end
-			return { front_cards: hand - straights, back_cards: straights }
+			
+			if back_value > front_value
+				return result
+			elsif back_value == front_value and 
+			      result[:exact_value] < back_unique_value
+				return result
+			else
+				next
+			end
 		end
-		hand.sort_by! { |card| card.value_comparison }
-		return { front_cards: hand[-4..-2], back_cards: [[hand.last]] }
+		
+		# no pairs or better possible for the front - just make the biggest back hand possible and toss rest in front
+		if !back_filled
+			back_hand = pick_best_choice({which_hand: BACK_HAND, choices: find_highest_hand(hand)[:cards], full_hand: hand, next_priority: FRONT_HAND })
+			remainders = hand - back_hand[:cards]
+			remainders.sort_by!{|c| c.value_comparison}
+			remainders=remainders[-3..-1]
+    else
+			remainders = hand.sort_by{|c| c.value_comparison}[-3..-1]
+		end
+		result={ cards:           remainders,
+						 value:           HIGH_CARD,
+						 weighted_value:  sort_cards_by_importance(remainders, FRONT_HAND, HIGH_CARD)[:weighted_value],
+						 exact_value:     unique_value(remainders, HIGH_CARD),
+						 remaining_cards: hand-remainders,
+						 next_priority:   BACK_HAND}
+		return result
 	end
 	
 	def auto_arrange_hi
 		
 	end
 	
-	def most_complementary_back(args)
-		
-		if !args[:full_hand]
-			args[:full_hand] = hand
+	def find_best_cards_for(which_hand, hand=cards)
+		case which_hand
+			when FRONT_HAND
+				return find_highest_valid_front_hand(hand)
+			when MID_HAND
+				return pick_best_choice({choices: [find_lowest_hand(hand)], which_hand: MID_HAND, full_hand: hand})
+			when BACK_HAND
+				best_back_hand = find_highest_hand(hand)
+				return pick_best_choice( {choices: best_back_hand[:cards], which_hand: BACK_HAND, full_hand: hand })
 		end
-		
-		if !args[:back_cards]
-			args[:back_cards] = find_highest_hand(args[:full_hand])[:cards]
-		end
-		
-		if !args[:next_priority]
-			args[:next_priority] = FRONT_HAND
-		end
-		
-		if args[:back_cards].size > 1
-			# call this function for each of the choices, and pick the best relative one
-			choices = []
-			args[:back_cards].each do |choice|
-				choices.push(most_complementary_back( {back_cards: [choice], next_priority: args[:next_priority], full_hand: args[:full_hand]} ))
-			end
-			best_choice = choices.max_by { |choice| choice[:approx_next_priority_hand_value] + choice[:approx_back_hand_value] }
-			return best_choice
-		elsif args[:back_cards].size==1
-			hand = args[:back_cards].first
-			if hand.size > 5
-        # flushes and straights with options - gotta get rid of some
-				multiples = contains_multiples(args[:full_hand])[:multiples]
-				if lo_hand? MID_HAND
-					# flushes and straights should try to 1. break up multiples and 2. take the highest face values
-					hand.sort_by! do |cards|
-						if cards.class == Array
-							cards.first.value_comparison(true)
-						else
-							cards.value_comparison(true)
-						end
-					end
-					while hand.size > 5
-						target = nil
-						target = hand.find do |cards|
-							if cards.class == Array
-								true
-							else
-								multiples.each do |group|
-									if cards.value_comparison == group.first.value_comparison
-										true
-									end
-								end
-							end
-						end
-						if !target #no chance of there being any arrays now
-							target = cards.first.value_comparison == ACE ? cards.second : cards.first
-						end
-						hand.delete target
-					end
-				else
-					# prioritising the front
-					# flushes and straights should try to 1. preserve a trips/high pair and otherwise, take the highest cards possible
-					
-					# go through the multiples from best hands to worst, and if any are found within the hand array, remove it so that
-					# the multiple is preserved for the front
-					target=nil
-					multiples.each do |group|
-						if target
-							break
-						end
-						hand.each do | cards|
-							value = cards.class == Array ? cards.first.value_comparison : cards.value_comparison
-							if value == group.first.value_comparison
-								target = cards
-								break
-							end
-						end
-					end
-					if target
-						hand.delete target
-					end
-					
-					if hand.size > 5
-						hand.sort_by! do |cards|
-							if cards.class == Array
-								cards.first.value_comparison
-							else
-								cards.value_comparison
-							end
-						end
-						while hand.size > 5
-							hand.shift #get rid of the lowest cards until the hand's size 5
-						end
-					end
-				end
-			end
-			# now our array is definitely less than size 5.  If any are arrays, get rid of the other options - see reasoning below
-			hand.map! do |card|
-				if card.class == Array  # Fortunately, In hi/lo, you can't flush in the middle or
-					card.first      			# the front, so it doesn't actually matter which one of these duplicates you take.
-																# may need to change for hi only
-				else
-					card
-				end
-			end
-			approx_back_hand_value = find_highest_hand(hand)[:highest_value]
-			remainders = args[:full_hand] - hand
-			if args[:next_priority] == MID_HAND
-				next_priority_cards = find_lowest_hand(remainders)
-				next_priority_cards.map! do |cards|
-					if cards.class == Array
-						cards.first
-					else
-						cards
-					end
-				end
-				approx_next_priority_hand_value = approximate_value(MID_HAND, 
-																									{size: next_priority_cards.size, 
-																									face_value: next_priority_cards.last.class == Array ? next_priority_cards.last.last.value_comparison : next_priority_cards.last.value_comparison })
-			else
-				next_priority_cards = contains_multiples(remainders)
-				if next_priority_cards[:multiples].size == 0
-					if next_priority_cards[:remainders].size <= 3
-						next_priority_cards = next_priority_cards[:remainders]
-					else
-						next_priority_cards = next_priority_cards[:remainders][-3..-1]
-					end
-					multiples = 1
-				else
-					next_priority_cards = next_priority_cards[:multiples].first
-					multiples = next_priority_cards.size
-				end				
-				approx_next_priority_hand_value = approximate_value(FRONT_HAND, 
-																					{multiples: multiples, face_value: next_priority_cards.last.value_comparison })
-			end
-			
-			return {back_cards: hand, 
-							next_priority_cards: next_priority_cards, 
-							approx_back_hand_value: approx_back_hand_value, 
-							approx_next_priority_hand_value: approx_next_priority_hand_value }
-		end		
 	end
 	
-	def most_complementary_mid(args)
-	
-		if !args[:full_hand]
-			args[:full_hand] = hand
-		end
+	def fill_subhand_by_priority(hand, already_filled_subhands, next_priority=nil)
 		
-		if !args[:mid_cards]
-			args[:mid_cards] = find_lowest_hand(args[:full_hand])
-		end
-		
-		if !args[:next_priority]
-			args[:next_priority] = FRONT_HAND
-		end
-		
-		# if the next priority is the front, then all we need to do is get rid of the subarrays: it can't make
-		# flushes, so it doesn't matter which duplicate we get rid of
-		
-		# if the next priority is the back, then try to not use any flushes, then get rid of subarrays
-		hand = args[:mid_cards]
-		
-		if args[:next_priority] == BACK_HAND
-			contains_flush = contains_flush(args[:full_hand])
-			
-			if !contains_flush[:is_flush]
-				contains_flush = false
-			else
-				flushes=[]
-				contains_flush[:cards].each do |flush|
-					flushes.push flush.first.suit
-				end
-				contains_flush = true
-			end
-		end
-		
-		hand.map! do |cards|
-			if cards.class == Array
-				if args[:next_priority] == MID_HAND or !contains_flush
-					cards.first
-				else
-					keeper = cards.first
-					cards.each do | card |
-						if !flushes.include?(card.suit)
-							keeper = card
-						end
-					end
-					keeper
-				end
-			else
-				cards
-			end
-		end
+		if next_priority and !already_filled_subhands.include?(next_priority)
 
-		remainders = args[:full_hand] - hand
-		if args[:next_priority] == BACK_HAND
-			back_cards = find_highest_hand(remainders)[:cards]
-			next_priority_cards = most_complementary_back(  { back_cards:    back_cards, 
-																												full_hand:     remainders, 
-																												next_priority: MID_HAND } )[:back_cards]
+			best_cards = find_best_cards_for(next_priority, hand)
+			
 		else
-			front_cards = find_highest_valid_front_hand(remainders)
-			next_priority_cards = front_cards[:front_cards]
-		end
-		
-		return {mid_cards: hand, 
-						next_priority_cards: next_priority_cards}
-
-	end
-	
-	def auto_arrange_lo(hand=cards)
-
-		hand=hand.sort_by(&:value_comparison)
-
-		highest_hand = find_highest_hand
-		best_front = find_highest_valid_front_hand
-		lowest_hand = find_lowest_hand
-		
-		lo_value = {size: lowest_hand.size, face_value: lowest_hand.last.class == Array ? lowest_hand.last.last.value_comparison : lowest_hand.last.value_comparison }
-		
-		priorities = { FRONT_HAND => approximate_value(FRONT_HAND, best_front[:front_cards] ? {multiples: best_front[:front_cards].size, face_value: best_front[:front_cards].first.value_comparison } : {multiples: 0}),
-									 MID_HAND   => approximate_value(MID_HAND, lo_value),
-									 BACK_HAND  => approximate_value(BACK_HAND, highest_hand[:highest_value])}
-		
-		highest_priority_hand = nil
-		highest_priority_level = 0
-		
-		second_priority_hand = nil
-		second_priority_level = 0
-		
-		tiebreakers = [1, 0, 2]
-		
-		priorities.each do |which_hand, priority |
-			if priority > second_priority_level or !second_priority_hand or
-			   (priority == second_priority_level and tiebreakers[which_hand] > tiebreakers[second_priority_hand])
-				if priority > highest_priority_level or !highest_priority_hand or
-					(priority == highest_priority_level and tiebreakers[which_hand] > tiebreakers[highest_priority_hand])
-					second_priority_hand = highest_priority_hand
-					second_priority_level = highest_priority_level
-					highest_priority_hand = which_hand
-					highest_priority_level = priority
+			priorities = []
+			best_cards = []
+			3.times do |i|	
+				if !already_filled_subhands.include?(i)
+					best_cards[i] = find_best_cards_for(i, hand)
+					priorities[i] = best_cards[i][:weighted_value]
 				else
-					second_priority_hand = which_hand
-					second_priority_level = priority
+					priorities[i] = -1
 				end
 			end
+			
+			next_priority = priorities.index(priorities.max)
+			best_cards = best_cards[next_priority]
 		end
-		
+		@arrangement[next_priority][:cards] = best_cards[:cards]
+		@arrangement[next_priority][:value] = best_cards[:value]
+		hand-=best_cards[:cards]
+		return {remaining_hand: hand, filled_subhand: next_priority, next_priority: best_cards[:next_priority]}
+	end
+	
+	def auto_arrange_lo(hand = cards)
+
+	already_filled_subhands = []
 		reset_arrangement
+		result = Hash.new
 		
-		if highest_priority_hand == FRONT_HAND
-			@arrangement[FRONT_HAND][:cards] += best_front[:front_cards]
-			hand-=best_front[:front_cards]
-			
-			# must do back hand next, to ensure we don't end up invalid
-			back_instructions = most_complementary_back(  {back_cards:    best_front[:back_cards], 
-																										 full_hand:     hand, 
-																										 next_priority: MID_HAND })
-			
-			@arrangement[BACK_HAND][:cards] += back_instructions[:back_cards]
-			hand-=back_instructions[:back_cards]
-			
-			@arrangement[MID_HAND][:cards] += back_instructions[:next_priority_cards]
-			
-			hand-=back_instructions[:next_priority_cards]
-		elsif highest_priority_hand == BACK_HAND
-			
-			back_instructions = most_complementary_back(  {back_cards:    highest_hand[:cards], 
-																										 full_hand:     hand,
-																										 next_priority: second_priority_hand })
-			
-			@arrangement[BACK_HAND][:cards] += back_instructions[:back_cards]
-			hand -= back_instructions[:back_cards]
-			
-			@arrangement[second_priority_hand][:cards] += back_instructions[:next_priority_cards]
-			hand-=back_instructions[:next_priority_cards]
-			
-			if second_priority_hand == MID_HAND
-				best_remainders = contains_multiples(hand)[:multiples]
-				if best_remainders.size > 0
-					@arrangement[FRONT_HAND][:cards]+=best_remainders.first
-					hand -= best_remainders.first
-				end
-				# fill front with best of the remainders
-			else
-				best_remainders = find_lowest_hand(hand)
-				best_remainders.map! do |cards|
-					if cards.class == Array
-						cards.first
-					else
-						cards
-					end
-				end
-				@arrangement[MID_HAND][:cards] += best_remainders
-				hand -= best_remainders
-			end
-		else
-			mid_instructions = most_complementary_mid(  {mid_cards:     lowest_hand, 
-																									 full_hand:     hand,
-																									 next_priority: second_priority_hand })
-			# pick out best version of duplicates in the lo hand
-			@arrangement[MID_HAND][:cards] += mid_instructions[:mid_cards]
-			hand-=mid_instructions[:mid_cards]
-			
-			@arrangement[second_priority_hand][:cards] += mid_instructions[:next_priority_cards]
-			hand-=mid_instructions[:next_priority_cards]
-			
-			if second_priority_hand == BACK_HAND # when refactoring: note when we actually changed priority in most_complementary_mid
-				best_remainders = contains_multiples(hand)[:multiples]
-				if best_remainders.size > 0
-					front_cards = best_remainders.first
-					while front_cards.size > 3
-						front_cards.pop
-					end
-					@arrangement[FRONT_HAND][:cards]+=front_cards
-					hand -= front_cards
-				end
-			else
-				best_remainders = find_highest_hand(hand)[:cards].first
-				while best_remainders.size > 5
-					best_remainders.shift
-				end
-				best_remainders.map! do |cards|
-					cards.class == Array ? cards.first : cards
-				end
-				@arrangement[BACK_HAND][:cards] += best_remainders
-				hand -= best_remainders
-			end
-			
+		3.times do |i|
+			result = fill_subhand_by_priority(hand, already_filled_subhands, result[:next_priority])
+			already_filled_subhands.push result[:filled_subhand]
+			debug_arrangement
+			hand = result[:remaining_hand]
 		end
+		
 		if hand.size > 0
 			place_remainders hand
 		end
 		debug_arrangement
-	end
-	
-	def approximate_value(which_hand, highest_value)
-		result = 0
-		
-		case which_hand
-		
-			when BACK_HAND
-				result += highest_value
-				if highest_value >= SUGARS_LO[BACK_HAND]
-					result+= SUGAR_VALUE
-				end
-			when MID_HAND
-				if highest_value[:size] == 5
-					case highest_value[:face_value]
-						when 5 # wheel
-							result += FIVE_OF_A_KIND 
-							result += SUGAR_VALUE
-						when 6
-							result += FOUR_OF_A_KIND
-							result += SUGAR_VALUE
-						when 7, 8
-							result += FULL_HOUSE
-						when 9, 10
-							result += FLUSH
-						when 11, 12, 13
-							result += THREE_OF_A_KIND
-						else
-							result += HIGH_CARD
-					end
-				end
-			when FRONT_HAND
-				if highest_value[:multiples]
-					if highest_value[:multiples] == 3
-						result += SUGAR_VALUE
-						if highest_value[:face_value] > 10
-							result += FIVE_OF_A_KIND
-						else
-							result += FOUR_OF_A_KIND
-						end
-					elsif highest_value[:multiples] == 2
-						case highest_value[:face_value]
-							when ACE_COMPARATOR, KING_COMPARATOR, QUEEN
-								result += FULL_HOUSE
-							when JACK, TEN
-								result += FLUSH
-							when 9, 8
-								result += STRAIGHT
-							else
-								result += THREE_OF_A_KIND
-						end
-					end
-				end
-		end
-		return result
 	end
 
 	def place_remainders(remainders)
