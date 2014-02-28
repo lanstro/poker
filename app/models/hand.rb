@@ -946,7 +946,7 @@ class Hand
 		cards.each do |card|
 			suited[card.suit.to_sym].push card
 		end
-		flushes=suited.select{ |cards| cards.size >= 5 }
+		flushes=suited.select{ |keys, cards| cards.size >= 5 }.values
 		
 		if flushes.size > 0
 			return {is_flush: true, cards: flushes}
