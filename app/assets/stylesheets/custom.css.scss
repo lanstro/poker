@@ -49,13 +49,19 @@ h1 {
 h2 {
   font-size: 1.2em;
   text-align: center;
-  font-weight: normal;
-  color: $grayLight;
 }
 
 p {
   font-size: 1.1em;
   line-height: 1.7em;
+}
+
+.subtext {
+	font-size:0.8em;
+}
+
+.subtext a{
+	font-size:1em;
 }
 
 /* container */
@@ -96,7 +102,7 @@ p {
 aside {
   section {
     padding: 10px 0;
-    border-top: 1px solid $grayLighter;
+    border-top: 1px solid gray;
     &:first-child {
       border: 0;
       padding-top: 0;
@@ -119,6 +125,10 @@ aside {
 .avatar {
   float: left;
   margin-right: 10px;
+}
+
+.tab-pane{
+	padding-top:20px;
 }
 
 /* forms */
@@ -155,9 +165,9 @@ input {
   li {
     overflow: auto;
     padding: 10px 0;
-    border-top: 1px solid $grayLighter;
+    border-top: 1px solid gray;
     &:last-child {
-      border-bottom: 1px solid $grayLighter;
+      border-bottom: 1px solid gray;
     }
   }
 }

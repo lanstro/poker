@@ -20,6 +20,15 @@ module SessionsHelper
 		user == current_user
 	end
 	
+	def current_table
+		user=current_user
+		if !user
+			false
+		else
+			return Table.find_users_tables(user)
+		end
+	end
+	
 	def signed_in?
 		!current_user.nil?
 	end
@@ -39,4 +48,6 @@ module SessionsHelper
 	def store_location
 		session[:return_to] = request.url if request.get?
 	end
+	
+
 end

@@ -107,9 +107,13 @@ class Table
 			end
 		end
 	end
+	
+	def num_human_players
+		return @players.count(&:human?)
+	end
 
 	def full?
-		if @join_queue.size + @players.count(&:human?) < @seats
+		if @join_queue.size + num_human_players < @seats
 			return true
 		end
 		return false
@@ -627,6 +631,16 @@ class Table
 			end
 		end
 		return Table.new(stakes, seats, ais, mid_is_lo)
+	end
+
+	def Table.find_users_tables(user)
+		result = @@tables.dup
+		result.keep_if{ |table| table.player_object(user) != nil }
+		if result.size == 0
+			return false
+		else
+			return result
+		end
 	end
 	
 	# other

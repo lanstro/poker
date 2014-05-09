@@ -1,17 +1,14 @@
 <% if !@table %>
 	<% provide(:title, "No table open") %>
 	<p>There is no such table open right now.</p>
-	<% if signed_in? %>
-		<%= link_to "Start a new table!", new_table_path, class: "btn btn-large btn-primary btn-center" %>
-	<% end %>
 	<%= link_to "See current list of tables", tables_path, class: "btn btn-large btn-primary btn-center" %>
 <% else %>
 
 	<% provide(:title, "Table "+@table.id.to_s) %>
 	<% card_file_paths %>
-	<h1>Table <%= @table.id %></h1>
-	<% description = "Stakes: $#{@table.stakes}/point, #{@table.seats} seats, #{ (@table.ais)?"with AIs":"humans only" }, #{ (@table.mid_is_lo)?"Mid hand is lo":"High only"}" %>
-	<h2><%= description %></h2>
+	
+	<% description = "Stakes: $#{@table.stakes}/point</br>Seats: #{@table.seats}</br>Computer players: #{ (@table.ais)?"Yes":"No"}</br>Game type: #{ (@table.mid_is_lo)?"Hi/Lo":"Classic"}" %>
+	<h1>Table <%= @table.id %> <a href="#" data-toggle="tooltip" data-placement="right" title="<%= description %>" data-html = "true" id="table_description"><span class="glyphicon glyphicon-plus-sign"></span></a></h1>
 
 	<div id = "table" data-table_id=<%= @table.id %> data-uri="<%= request.host %>:<%= request.port %>/websocket" data-table_stakes=<%= @table.stakes %> data-mid_is_lo=<%= @table.mid_is_lo %>>
 		<div id="announcements">
@@ -118,6 +115,13 @@
 	
 	<script type = "text/template" id="ready_button_template">
 		<input class="btn btn-large btn-primary menu_button" value="Ready" type = "submit">
+	</script>
+	
+	<script type="text/javascript">
+		$("#table_description").tooltip();
+		$("#table_description").click(function(e){
+			e.preventDefault();
+		});
 	</script>
 	
 <% end %>

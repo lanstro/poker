@@ -1,10 +1,17 @@
 <% if signed_in? %>
-	<% current_table=false %>
+	<p>Welcome back, <%= current_user.name %>!</p>
 	<% if current_table %>
-		<%= link_to "Return to table", table_path(current_table.name), class: "btn btn-large btn-primary" %>
+		<p>to do - return to multiple tables at once</p>
+		<%= link_to "Return to table", table_path(current_table.first.id), class: "btn btn-large btn-primary" %>
 	<% else %>
 		<%= link_to "Find a game now!", tables_path, class: "btn btn-large btn-primary" %>
 	<% end %>
 <% else %> 
-	<%= link_to "Sign up now!", new_user_path, class: "btn btn-large btn-primary" %>
+	</br>
+	<div><%= link_to "Try it now!", "#", class: "btn btn-large btn-primary" %></div>
+	</br>
+	<div>
+		<%= link_to "Create an account", new_user_path, class: "btn btn-large btn-primary" %>
+		<p class="subtext">Already have an account? Sign in now.</p>
+	</div>
 <% end %>

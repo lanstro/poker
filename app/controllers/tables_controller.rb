@@ -5,7 +5,7 @@ class TablesController < ApplicationController
 
 	def create
 		ais = params[:table][:ais] == "Yes" 
-		mid_is_lo = params[:table][:mid_is_lo] == "Yes"
+		mid_is_lo = params[:table][:mid_is_lo] == "Hi/Lo"
 		@table=Table.find_empty_table(params[:table][:stakes].to_i, params[:table][:seats].to_i, ais, mid_is_lo)
 		redirect_to table_path(@table.id)
 	end
