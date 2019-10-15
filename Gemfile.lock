@@ -154,7 +154,7 @@ GEM
       rails
       redis
       thin
-    will_paginate (3.0.4)
+    will_paginate (3.0.5)
 
 PLATFORMS
   ruby
@@ -182,4 +182,4 @@ DEPENDENCIES
   turbolinks (= 1.1.1)
   uglifier (= 2.1.1)
   websocket-rails
-  will_paginate (= 3.0.4)
+  will_paginate (= 3.0.5)
